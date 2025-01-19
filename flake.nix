@@ -1,5 +1,5 @@
 {
-  description = "Nixos config flake";
+  description = "NixOS config flake";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-24.11";
@@ -10,11 +10,23 @@
     };
   };
 
-  outputs = { self, nixpkgs, ... }@inputs: {
-    nixosConfigurations.home-pc = nixpkgs.lib.nixosSystem {
-      specialArgs = {inherit inputs;};
+  outputs = { self, nixpkgs, ... }@inputs: 
+  let
+
+    selectedSystem = "main-pc";
+    # Define paths to the system configurations
+    configPath = {
+      main-pc = ./hosts/main-pc/configuration.nix;
+      laptop = ./hosts/laptop/configuration.nix;
+    };
+    
+  in {
+
+    nixosConfigurations.${selectedSystem} = nixpkgs.lib.nixosSystem {
+      specialArgs = { inherit inputs; };
       modules = [
-        ./hosts/home-pc/configuration.nix
+        configPath.${selectedSystem}
+	# check to see. 
         inputs.home-manager.nixosModules.default
       ];
     };
