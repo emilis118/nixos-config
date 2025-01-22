@@ -12,12 +12,10 @@
         ];
 
 # Bootloader.
-    boot.loader.systemd-boot.enable = true;
-    boot.loader.efi.canTouchEfiVariables = true;
-    boot.loader.grub.configurationLimit = 4;
+    boot.loader.grub.enable = true;
+    boot.loader.grub.device = "/dev/sda";
+    boot.loader.grub.useOSProber = true;
 
 # Networking
-    networking.hostName = "laptopas";
-# trackpad
-    services.xserver.libinput.enable = true;
+    networking.hostName = "desktopas";
 }
