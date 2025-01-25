@@ -9,6 +9,7 @@
   users.users.emilis = {
     isNormalUser = true;
     shell = pkgs.zsh;
+    initialPassword = "123456";
     extraGroups = [
       "wheel"
       "networkmanager"
