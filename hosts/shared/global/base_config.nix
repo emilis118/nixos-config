@@ -5,8 +5,9 @@
 { config, pkgs, inputs, ... }:
 
 {
-    # imports = [
-    # ];
+    imports = [
+    ./../users/emilis  # user definition
+    ];
 
 # enable flakes
     nix.settings.experimental-features = [ "nix-command" "flakes" ];
@@ -19,7 +20,6 @@
 #         };
 #         nixosModules = [ inputs.home-manager.nixosModules.default ];
 #     };
-
 
 # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
 
