@@ -4,6 +4,7 @@
     nativeBuildInputs = with pkgs; [
       nix
       home-manager
+      vim
       git
     ];
   };

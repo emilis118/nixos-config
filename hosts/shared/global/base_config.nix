@@ -5,10 +5,8 @@
 { config, pkgs, inputs, ... }:
 
 {
-    imports = [
-        ./packages.nix
-            ./user.nix
-    ];
+    # imports = [
+    # ];
 
 # enable flakes
     nix.settings.experimental-features = [ "nix-command" "flakes" ];
