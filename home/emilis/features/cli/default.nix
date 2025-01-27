@@ -6,6 +6,8 @@ imports = [
 
 home.packages = with pkgs; [
     alacritty
+    neovim
+    git
     ripgrep
     fd
 
