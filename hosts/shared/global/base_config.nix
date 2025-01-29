@@ -13,7 +13,8 @@
 # Enable the X11 windowing system.
     services.xserver.enable = true;
     services.xserver.windowManager.i3.enable = true;
-    services.xserver.windowManager.i3.configFile = /home/emilis/dotfiles/i3/config;
+    services.displayManager.defaultSession = "none+i3";
+
     programs.zsh.enable = true;
 # Enable the GNOME Desktop Environment.
     # services.xserver.displayManager.gdm.enable = true;
