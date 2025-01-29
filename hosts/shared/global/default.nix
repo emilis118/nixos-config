@@ -3,9 +3,8 @@
 {
     imports = [
         ./base_config.nix
-        ./../users/emilis
         ./locale.nix
+        ./../users/emilis  # home-manager
     ];
 
-    programs.zsh.enable = true;
 }

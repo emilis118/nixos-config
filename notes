@@ -1,0 +1,17 @@
+nixos conf:
+
+- enable bluetooth
+- set timezone
+- define users
+- set bootloader
+- set kernel version
+
+home-manager:
+
+- install discord
+- install firefox
+- install/edit i3wm
+- add zsh
+- set wallpaper
+- set git settings
+- applications
