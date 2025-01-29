@@ -6,12 +6,6 @@
         enable = true;
     };
 
-    home.file.".config/i3" = {
-        source = ~/dotfiles/i3;
-        recursive = true;
-        };
-
-
     home.packages = with pkgs; [
         feh
             rofi

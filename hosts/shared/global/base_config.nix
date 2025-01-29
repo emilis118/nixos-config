@@ -13,6 +13,7 @@
 # Enable the X11 windowing system.
     services.xserver.enable = true;
     services.xserver.windowManager.i3.enable = true;
+    services.xserver.windowManager.i3.configPath = builtins.path { path = /home/emilis/dotfiles/i3/config; };
     services.displayManager.defaultSession = "none+i3";
 
     programs.zsh.enable = true;
