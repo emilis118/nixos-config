@@ -2,11 +2,11 @@
 {
 imports = [
     ./neovim.nix
+    ./git.nix
 ];
 
 home.packages = with pkgs; [
     alacritty
-    neovim
     git
     ripgrep
     fd
