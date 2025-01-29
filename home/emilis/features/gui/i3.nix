@@ -2,6 +2,7 @@
 
 { pkgs, lib, config, ... }: {
 
+    programs.xserver.enable = true;
     services.xserver.windowManager.i3.enable = true;
     services.xserver.windowManager.i3.configFile = "~/dotfiles/i3/config";
 
