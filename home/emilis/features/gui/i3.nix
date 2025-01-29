@@ -4,8 +4,13 @@
 
     xsession.windowManager.i3 = {
         enable = true;
-        configPath = /home/emilis/dotfiles/i3/config;
     };
+
+    home.file.".config/i3" = {
+        source = ~/dotfiles/i3;
+        recursive = true;
+        };
+
 
     home.packages = with pkgs; [
         feh
