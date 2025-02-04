@@ -9,6 +9,8 @@
         [ # Include the results of the hardware scan.
         ./hardware-configuration.nix
         ./../shared/global  # auto picks default.nix
+
+        ./../shared/optional/kde.nix  # temp kde while setting up
         ];
 
 # Bootloader.
