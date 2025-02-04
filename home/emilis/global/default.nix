@@ -7,7 +7,7 @@
 
     imports = [
         ../features/cli
-        ../features/gui/i3.nix
+        ../features/i3.nix
         ../features/firefox.nix
     ];
 

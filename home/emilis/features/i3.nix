@@ -7,7 +7,7 @@
     #     };
 
     home.packages = with pkgs; [
-        feh
+            feh
             rofi
             rofi-calc
             (nerdfonts.override { fonts = ["JetBrainsMono"]; })

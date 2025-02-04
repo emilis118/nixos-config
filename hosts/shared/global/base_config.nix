@@ -12,15 +12,12 @@
     networking.networkmanager.enable = true;
 # Enable the X11 windowing system.
     services.xserver.enable = true;
-    # services.xserver.windowManager.i3.enable = true;
-    # services.xserver.windowManager.i3.configPath = builtins.path { path = /home/emilis/dotfiles/i3/config; };
-    # services.xserver.displayManager.defaultSession = "none+i3";
-    # services.xserver.displayManager.sddm.enable = true;
+    services.xserver.windowManager.i3.enable = true;
+    services.xserver.windowManager.i3.configPath = builtins.path { path = /home/emilis/dotfiles/i3/config; };
+    services.xserver.displayManager.defaultSession = "none+i3";
+    services.xserver.displayManager.sddm.enable = true;
 
     programs.zsh.enable = true;
-# Enable the GNOME Desktop Environment.
-    # services.xserver.displayManager.gdm.enable = true;
-    # services.xserver.desktopManager.gnome.enable = true;
 
 # Configure keymap in X11
     services.xserver.xkb = {
