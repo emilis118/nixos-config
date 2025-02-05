@@ -10,7 +10,7 @@
         ./hardware-configuration.nix
         ./../shared/global  # auto picks default.nix
 
-        ./../shared/optional/kde.nix  # temp kde while setting up
+        # ./../shared/optional/kde.nix  # temp kde while setting up
         ];
 
 # Bootloader.
@@ -19,7 +19,7 @@
     boot.loader.grub.configurationLimit = 4;
 
 # Networking
-    networking.hostName = "laptopas";
+    networking.hostName = "laptop";
 # trackpad
     services.libinput.enable = true;
 }

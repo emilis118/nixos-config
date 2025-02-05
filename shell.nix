@@ -3,7 +3,7 @@
     NIX_CONFIG = "extra-experimental-features = nix-command flakes";
     nativeBuildInputs = with pkgs; [
       nix
-      home-manager
+      home-manager/release-24.11
       git
     ];
   };

@@ -17,5 +17,5 @@
     boot.loader.grub.useOSProber = true;
 
 # Networking
-    networking.hostName = "desktopas";
+    networking.hostName = "desktop";
 }
