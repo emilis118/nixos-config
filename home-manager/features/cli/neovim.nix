@@ -23,7 +23,7 @@
         {
             plugin = catppuccin-nvim;
             type = "lua";
-            config = "colorscheme catppuccin";
+            config = "vim.cmd('colorscheme catppuccin')";
         }
 
         nvim-lspconfig
