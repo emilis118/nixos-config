@@ -20,6 +20,11 @@
         desktop = nixpkgs.lib.nixosSystem {
             modules = [
             ./hosts/desktop/configuration.nix
+            home-manager.nixosModules.home-manager {
+                home-manager.useGlobalPkgs = true;
+                home-manager.useUserPackages = true;
+                home-manager.users.emilis = import ./home-manager/desktop.nix;
+                }
             ];
             specialArgs = {inherit inputs username;};
             };
@@ -28,23 +33,28 @@
         laptop = nixpkgs.lib.nixosSystem {
             modules = [
             ./hosts/laptop/configuration.nix
+            home-manager.nixosModules.home-manager {
+                home-manager.useGlobalPkgs = true;
+                home-manager.useUserPackages = true;
+                home-manager.users.emilis = import ./home-manager/laptop.nix;
+                }
             ];
             specialArgs = {inherit inputs username;};
             };
         };
 
-    homeConfigurations = {
-        "${username}@desktop" = home {
-            inherit pkgs;
-            configuration = ./home-manager/desktop.nix;
-            };
-
-
-        "${username}@laptop" = home {
-            inherit pkgs;
-            configuration = ./home-manager/laptop.nix;
-            };
-
-        };
+    # homeConfigurations = {
+    #     "${username}@desktop" = home {
+    #         inherit pkgs;
+    #         configuration = ./home-manager/desktop.nix;
+    #         };
+    #
+    #
+    #     "${username}@laptop" = home {
+    #         inherit pkgs;
+    #         configuration = ./home-manager/laptop.nix;
+    #         };
+    #
+    #     };
   };
 }
