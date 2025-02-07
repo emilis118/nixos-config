@@ -23,7 +23,7 @@
             home-manager.nixosModules.home-manager {
                 home-manager.useGlobalPkgs = true;
                 home-manager.useUserPackages = true;
-                home-manager.users.emilis = import ./home-manager/desktop.nix;
+                home-manager.users."emilis@desktop" = import ./home-manager/desktop.nix;
                 }
             ];
             specialArgs = {inherit inputs username;};
@@ -36,7 +36,7 @@
             home-manager.nixosModules.home-manager {
                 home-manager.useGlobalPkgs = true;
                 home-manager.useUserPackages = true;
-                home-manager.users.emilis = import ./home-manager/laptop.nix;
+                home-manager.users."emilis@laptop" = import ./home-manager/laptop.nix;
                 }
             ];
             specialArgs = {inherit inputs username;};
