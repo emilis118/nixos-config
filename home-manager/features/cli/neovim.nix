@@ -4,9 +4,15 @@
   programs.neovim = {
     enable = true;
     # Path to your custom Neovim configuration
-    extraConfig = ''
-      source $HOME/dotfiles/nvim
+    extraLuaConfig = ''
+      source /etc/nixos/dotfiles/nvim/init.lua
     '';
-
   };
+
+  # packages to have
+  home.packages = with pkgs; [
+    ripgrep
+    fd
+    gcc
+  ];
 }
