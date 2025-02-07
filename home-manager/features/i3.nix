@@ -1,12 +1,16 @@
 # i3.nix
 
-{ pkgs, lib, config, ... }: {
+{ pkgs, lib, config, ... }:
 
-    # home.directory."$HOME/.config/i3".source = ./../i3;
-    xsession.windowManager.i3.enable = true;
-    # xsession.windowManager.i3.extraConfig = "include $HOME/dotfiles/i3/config";
-    xsession.windowManager.i3.configFile = "$HOME/dotfiles/i3/config";
+    let
+        i3 = xsession.windowManager.i3;
+    in {
+    # ENABLE i3
+    i3.enable = true;
+    # remove later
+    i3.extraConfig = "include $HOME/dotfiles/i3/config";
 
+    # dependencies of i3 go here
     home.packages = with pkgs; [
             feh
             rofi
@@ -14,4 +18,8 @@
             (nerdfonts.override { fonts = ["JetBrainsMono"]; })
             # nerdfonts.jetbrains-mono
     ];
-                            }
+
+    # configuration
+    
+
+}
