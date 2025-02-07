@@ -34,12 +34,12 @@
         }
 
         (nvim-treesitter.withPlugins (p: [
-            tree-sitter.nix
-            tree-sitter.vim
-            tree-sitter.bash
-            tree-sitter.lua
-            tree-sitter.python
-            tree-sitter.json
+            p.tree-sitter-nix
+            p.tree-sitter-vim
+            p.tree-sitter-bash
+            p.tree-sitter-lua
+            p.tree-sitter-python
+            p.tree-sitter-json
 # add others later
         ]))
     ];
