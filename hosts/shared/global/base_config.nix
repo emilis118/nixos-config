@@ -8,11 +8,6 @@
 # enable flakes
     nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
-# install home-manager (standalone)
-    environment.systemPackages = with pkgs; [
-        home-manager
-    ];
-
 # Enable networking
     networking.networkmanager.enable = true;
 # Enable the X11 windowing system.
