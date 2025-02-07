@@ -8,9 +8,10 @@
     vimAlias = true;
     vimdiffAlias = true;
     defaultEditor = true;
-    # extraLuaConfig = ''
-    #   -- ${builtins.readFile ./something.lua}
-    # '';
+    extraLuaConfig = ''
+      ${builtins.readFile ./../../../dotfiles/nvim/lua/emilis/remap.lua}
+      ${builtins.readFile ./../../../dotfiles/nvim/lua/emilis/set.lua}
+    '';
     
     plugins = with pkgs.vimPlugins; [
         # regular:
@@ -19,11 +20,14 @@
         # with config:
         # {plugin = config-name; config = ""; type = "lua";}
 
-        # {
-        #     plugin = catppucin-nvim;
-        #     type = "lua";
-        #     config = "colorscheme catppucin";
-        # }
+        {
+            plugin = catppuccin-nvim;
+            type = "lua";
+            config = "colorscheme catppuccin";
+        }
+
+        nvim-lspconfig
+
         # harpoon requirements:
         plenary-nvim
         telescope-nvim
