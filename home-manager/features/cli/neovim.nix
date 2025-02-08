@@ -54,7 +54,11 @@
 
         # harpoon requirements:
         plenary-nvim
-        telescope-nvim
+        {
+            plugin = telescope-nvim;
+            type = "lua";
+            config = builtins.readFile ./../../../dotfiles/nvim/after/plugin/telescope.lua;
+        }
         {
             plugin = harpoon2; 
             type = "lua";
