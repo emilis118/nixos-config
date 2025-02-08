@@ -44,6 +44,7 @@
             type = "lua";
             config = builtins.readFile ./../../../dotfiles/nvim/after/plugin/lsp.lua;
         }
+        nvim-cmp
         cmp-nvim-lsp
         # mason-nvim  # idk if use it or not
         # mason-lspconfig-nvim
