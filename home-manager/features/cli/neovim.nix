@@ -48,6 +48,7 @@
         }
         nvim-cmp
         cmp-nvim-lsp
+        conform-nvim
         # mason-nvim  # idk if use it or not
         # mason-lspconfig-nvim
 
