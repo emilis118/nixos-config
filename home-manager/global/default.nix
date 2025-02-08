@@ -9,8 +9,8 @@
     
     imports = [
         ../features/cli
-        ../features/i3.nix
         ../features/firefox.nix
+        ../features/rofi.nix
     ];
 
       home.sessionVariables = {
