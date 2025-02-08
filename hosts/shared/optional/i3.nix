@@ -10,6 +10,7 @@
 		i3status
 		i3blocks
 		i3lock
+        feh
 	];
 	};
     

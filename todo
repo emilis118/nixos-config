@@ -5,7 +5,6 @@
 - intel-ucode
 - fzf?
 - alacritty setup
-- fonts fix
 - rofi tools (calc, bluetooth etc)
 - i3wm status bars setup
 - i3wm move to nix
