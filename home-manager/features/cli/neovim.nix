@@ -24,6 +24,7 @@
         xclip
         ripgrep
         fd
+        gcc # for treesitter
     ];
     
     plugins = with pkgs.vimPlugins; [
