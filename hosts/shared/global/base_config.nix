@@ -7,7 +7,7 @@
 {
 # enable flakes
     nix.settings.experimental-features = [ "nix-command" "flakes" ];
-
+    nix.nixPath = [ "nixpkgs=${inputs.nixpkgs}" ];
 # Enable networking
     networking.networkmanager.enable = true;
 # Enable the X11 windowing system.

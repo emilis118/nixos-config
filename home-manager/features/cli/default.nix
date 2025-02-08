@@ -8,8 +8,6 @@ imports = [
 home.packages = with pkgs; [
     alacritty
 
-    nixd  # nix lsp
-    alejandra  # formatter
-    nh  # wrapper
+    nh # nix helper
     ];
 }

@@ -12,6 +12,19 @@
       ${builtins.readFile ./../../../dotfiles/nvim/lua/emilis/remap.lua}
       ${builtins.readFile ./../../../dotfiles/nvim/lua/emilis/set.lua}
     '';
+    extraPackages = with pkgs; [
+        nodejs  # for some LSP servers
+        python3  # for python
+        lua-language-server  # lua LSP
+        rust-analyzer  # for rust LSP
+        clang-tools  # for c/c++
+        nixd  # nix lsp
+        alejandra  # nix formatter
+        # for neovim
+        xclip
+        ripgrep
+        fd
+    ];
     
     plugins = with pkgs.vimPlugins; [
         # regular:
@@ -25,8 +38,15 @@
             type = "lua";
             config = "vim.cmd('colorscheme catppuccin')";
         }
-
-        nvim-lspconfig
+# LSP
+        {
+            plugin = nvim-lspconfig;
+            type = "lua";
+            config = builtins.readFile ./../../../dotfiles/nvim/after/plugin/lsp.lua;
+        }
+        nvim-cmp-nvim-lsp
+        # mason-nvim  # idk if use it or not
+        # mason-lspconfig-nvim
 
         # harpoon requirements:
         plenary-nvim
@@ -46,14 +66,13 @@
             p.tree-sitter-json
 # add others later
         ]))
+
+        
     ];
   };
 
+
   # packages to have
   home.packages = with pkgs; [
-    xclip
-    ripgrep
-    fd
-    gcc
   ];
 }
