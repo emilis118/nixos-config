@@ -1,8 +1,5 @@
-{pkgs, ...}:
-{
-
-	environment.systemPackages = with pkgs; [
-            	(nerdfonts.override { fonts = ["JetBrainsMono"]; })
-	];
-
+{pkgs, ...}: {
+  fonts.packages = with pkgs; [
+    (nerdfonts.override {fonts = ["JetBrainsMono"];})
+  ];
 }
