@@ -51,7 +51,7 @@
 local lspconfig = require("lspconfig")
 
 -- Enable LSP servers
-local servers = { "lua_ls", "clangd", "rust_analyzer", "pyright" }
+local servers = { "lua_ls", "clangd", "rust_analyzer", "pyright", "nixd" }
 for _, server in ipairs(servers) do
   lspconfig[server].setup({
     capabilities = require("cmp_nvim_lsp").default_capabilities(),
@@ -77,3 +77,17 @@ cmp.setup({
 })
 
 vim.keymap.set("n", "gr", require('telescope.builtin').lsp_references, {})
+
+require("conform").setup({
+  formatters_by_ft = {
+    nix = { "alejandra" }, -- Automatically use alejandra for .nix
+    python3 = { "autopep8" },
+  },
+  format_on_save = {
+    timeout_ms = 1000,
+  },
+})
+
+vim.keymap.set("n", "<leader>f", function()
+  require("conform").format()
+end, { desc = "Format file" })

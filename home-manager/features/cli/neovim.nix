@@ -14,12 +14,13 @@
     '';
     extraPackages = with pkgs; [
         nodejs  # for some LSP servers
-        python3  # for python
+        python312Full  # for python
         lua-language-server  # lua LSP
         rust-analyzer  # for rust LSP
         clang-tools  # for c/c++
         nixd  # nix lsp
         alejandra  # nix formatter
+        python312Packages.autopep8
         # for neovim
         xclip
         ripgrep
@@ -76,5 +77,6 @@
 
   # packages to have
   home.packages = with pkgs; [
+    python312Full  # to actually run it
   ];
 }
