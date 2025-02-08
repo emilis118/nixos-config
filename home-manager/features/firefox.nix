@@ -2,8 +2,10 @@
 
 { pkgs, lib, config, ... }: {
 
-    home.packages = with pkgs; [
-        firefox
-    ];
+    programs.firefox.enable = true;
+
+    # home.packages = with pkgs; [
+    #     firefox
+    # ];
                             }
 

@@ -21,7 +21,7 @@
             modules = [
             ./hosts/desktop/configuration.nix
             home-manager.nixosModules.home-manager {
-                home-manager.useGlobalPkgs = true;
+                home-manager.useGlobalPkgs = false;
                 home-manager.useUserPackages = true;
                 home-manager.users."emilis" = import ./home-manager/desktop.nix;
                 }
@@ -34,7 +34,7 @@
             modules = [
             ./hosts/laptop/configuration.nix
             home-manager.nixosModules.home-manager {
-                home-manager.useGlobalPkgs = true;
+                home-manager.useGlobalPkgs = false;
                 home-manager.useUserPackages = true;
                 home-manager.users."emilis" = import ./home-manager/laptop.nix;
                 }
