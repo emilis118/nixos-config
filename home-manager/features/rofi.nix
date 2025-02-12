@@ -11,5 +11,8 @@
             rofi-pulse-select  # select audio output
             todofi-sh  # todo list
         ];
+        extraConfig = {
+            modi = "window,run,ssh,top";
+            };
         };
 }
