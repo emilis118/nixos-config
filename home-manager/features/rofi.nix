@@ -1,5 +1,8 @@
-{ pkgs, ... }: {
+{ pkgs, ... }:
 
+    let
+    rofiPowerMenu = "${pkgs.rofi-power-menu}/bin/rofi-power-menu";
+    in {
     programs.rofi = {
         enable = true;
         plugins = with pkgs; [
@@ -12,7 +15,15 @@
             todofi-sh  # todo list
         ];
         extraConfig = {
-            modi = "window,run,ssh,top";
+            modi = "window,run,ssh,top,power";
             };
         };
+
+    home.file.".config/rofi/scripts/rofi-power-menu.sh".text = ''
+        #!/bin/sh
+        ${rofiPowerMenu}
+    '';
+
+    home.sessionVariables.ROFI_POWER_MENU = rofiPowerMenu;
+
 }
