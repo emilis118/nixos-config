@@ -24,6 +24,8 @@
         ${rofiPowerMenu}
     '';
 
+    home.packages = [ pkgs.rofi-power-menu ];
+
     home.sessionVariables.ROFI_POWER_MENU = rofiPowerMenu;
 
 }
