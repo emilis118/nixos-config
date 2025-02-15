@@ -7,7 +7,7 @@
   # users.mutableUsers = false;
   users.users.emilis = {
     isNormalUser = true;
-    shell = pkgs.zsh; # remember to have zsh
+    shell = pkgs.bash; # remember to have zsh
     initialPassword = "123456"; # set to proper secret
     home = "/home/emilis";
     extraGroups = [

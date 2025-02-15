@@ -13,7 +13,8 @@
 # Enable the X11 windowing system.
     services.xserver.enable = true;
 
-    programs.zsh.enable = true;
+    programs.bash.enable = true;
+    # programs.zsh.enable = true;
 
 # Configure keymap in X11
     services.xserver.xkb = {
