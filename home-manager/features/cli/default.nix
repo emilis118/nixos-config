@@ -4,7 +4,7 @@
     ./git.nix
     ./alacritty.nix
     ./lf.nix
-    # ./zsh.nix
+    ./tmux.nix
   ];
 
   home.packages = with pkgs; [

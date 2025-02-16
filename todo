@@ -1,4 +1,3 @@
-- tmux
 - organise scripts and make them executable
 - sc-im (spreadsheet)
 - nvidia for desktop
@@ -12,4 +11,5 @@
 
 
 - zsh config, bashrc etc configs from dotfiles
+- tmux
 - rofi tools (calc, bluetooth etc)
