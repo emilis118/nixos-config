@@ -5,6 +5,8 @@
     ./alacritty.nix
     ./lf.nix
     ./tmux.nix
+    ./zip.nix
+    ./spreadsheet.nix
   ];
 
   home.packages = with pkgs; [

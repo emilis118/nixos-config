@@ -165,7 +165,8 @@ bindsym $mod+5 workspace $ws5
 bindsym $mod+6 workspace $ws6
 bindsym $mod+7 workspace $ws7
 bindsym $mod+8 workspace $ws8
-bindsym $mod+9 exec --no-startup-id exec /etc/nixos/dotfiles/i3/discord.sh
+# start-discord must be defined in i3.nix
+bindsym $mod+9 exec --no-startup-id exec "start-discord"
 # bindsym $mod+9 workspace $ws9
 bindsym $mod+0 workspace $ws10
 
@@ -252,8 +253,8 @@ bar {
 
 # Emilis personal keybinds:
 bindsym $mod+Shift+f exec firefox
-bindsym $mod+Shift+d exec /etc/nixos/dotfiles/i3/discord.sh
-bindsym $mod+Shift+b exec /etc/nixos/dotfiles/i3/bluetooth.sh
+bindsym $mod+Shift+d exec "start-discord"
+# bindsym $mod+Shift+b exec /etc/nixos/dotfiles/i3/bluetooth.sh
 bindsym $mod+c exec rofi -show calc -modi calc -no-show-match -no-sort
 
 bindsym Ctrl+Print exec --no-startup-id maim | xclip -selection clipboard -t image/png # screenshot to clipboard
