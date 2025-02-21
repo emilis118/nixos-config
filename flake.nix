@@ -33,7 +33,7 @@
             home-manager.users."emilis" = import ./home-manager/desktop.nix;
           }
         ];
-        specialArgs = {inherit inputs username;};
+        specialArgs = {inherit pkgs inputs username;};
       };
 
       # laptop
@@ -47,7 +47,7 @@
             home-manager.users."emilis" = import ./home-manager/laptop.nix;
           }
         ];
-        specialArgs = {inherit inputs username;};
+        specialArgs = {inherit pkgs inputs username;};
       };
     };
   };

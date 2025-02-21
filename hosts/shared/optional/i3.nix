@@ -1,6 +1,4 @@
-let
-myPkgs = import <nixpkgs>;
-in
+{pkgs, ...}:
 {
   services.xserver.windowManager.i3.enable = true;
   services.xserver.displayManager.defaultSession = "none+i3";
@@ -8,7 +6,7 @@ in
 
   services.xserver.windowManager.i3 = {
     configFile = ./../../../dotfiles/i3/config;
-    extraPackages = with myPkgs; [
+    extraPackages = with pkgs; [
       i3status
       i3blocks
       i3lock
@@ -17,7 +15,7 @@ in
   };
 
   users.users.emilis.packages = [
-    myPkgs.writeShellScriptBin
+    pkgs.writeShellScriptBin
     "start-discord"
     ''
       #!/bin/bash
