@@ -25,9 +25,8 @@
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = true;
+            home-manager.useUserPackages = false;
             home-manager.users."emilis" = import ./home-manager/desktop.nix;
-            nixpkgs.config.allowUnfree = true;
           }
         ];
         specialArgs = {inherit pkgs inputs username;};
@@ -40,9 +39,8 @@
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = true;
+            home-manager.useUserPackages = false;
             home-manager.users."emilis" = import ./home-manager/laptop.nix;
-            nixpkgs.config.allowUnfree = true;
           }
         ];
         specialArgs = {inherit pkgs inputs username;};
