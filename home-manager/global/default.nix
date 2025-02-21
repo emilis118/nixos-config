@@ -21,11 +21,5 @@
     EDITOR = "nvim";
   };
 
-  configuration = {
       nixpkgs.config.allowUnfree = true;
-      };
-  # nixpkgs.config = {
-  #   allowUnfree = true;
-  #   allowUnfreePredicate = _: true;
-  # };
 }
