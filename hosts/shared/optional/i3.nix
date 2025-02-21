@@ -13,8 +13,8 @@
     ];
   };
 
-  users.users.emilis.packages = with pkgs; [
-    writeShellApplication
+  users.users.emilis.packages = [
+    pkgs.writeShellScriptBin
     "start-discord"
     ''
       #!/bin/bash

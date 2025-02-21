@@ -1,13 +1,12 @@
 - organise scripts and make them executable
-- sc-im (spreadsheet)
 - nvidia for desktop
-- intel-ucode
-- alacritty setup
 - i3wm status bars setup
 - i3wm move to nix
 
 
 
+- sc-im (spreadsheet)
+- alacritty setup
 - zip
 - zsh config, bashrc etc configs from dotfiles
 - tmux
