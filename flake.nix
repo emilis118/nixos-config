@@ -15,10 +15,7 @@
   } @ inputs: let
     username = "emilis";
     system = "x86_64-linux";
-    pkgs = import nixpkgs {
-        legacyPackages.${system};
-        config.allowUnfree = true;
-        };
+    pkgs = nixpkgs.legacyPackages.${system};
   in {
     nixosConfigurations = {
       # Main desktop
