@@ -14,17 +14,17 @@
   };
 
   environment.systemPackages = [
-    pkgs.writeShellScriptBin
-    "start-discord"
-    ''
-      #!/bin/bash
+    (pkgs.writeShellScriptBin
+      "start-discord"
+      ''
+        #!/bin/bash
 
-      # Check if Discord is running, start it if not
-      pgrep Discord || (discord &)
+        # Check if Discord is running, start it if not
+        pgrep Discord || (discord &)
 
-      # Switch to the specified workspace
-      i3-msg workspace "9:Discord"
+        # Switch to the specified workspace
+        i3-msg workspace "9:Discord"
 
-    ''
+      '')
   ];
 }
