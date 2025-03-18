@@ -23,4 +23,18 @@
 
   # Networking
   networking.hostName = "desktop";
+
+  # Enable OpenGL
+  hardware.graphics.enable = true;
+
+  services.xserver.videoDrivers = ["nvidia"];
+
+  hardware.nvidia = {
+    modesetting.enable = true;
+    powerManagement.enable = false;
+    powerManagement.finegrained = false;
+    open = false; # for older than rtx-20 series
+    nvidiaSettings = true;
+    package = config.boot.kernelPackages.nvidiaPackages.stable;
+  };
 }
