@@ -2,6 +2,13 @@
   services.xserver.windowManager.i3.enable = true;
   services.xserver.displayManager.defaultSession = "none+i3";
   services.xserver.displayManager.sddm.enable = true;
+  services.xserver.displayManager.sddm.autoNumlock = true;
+  services.xserver.displayManager.sddm.settings = {
+    Autologin = {
+      Session = "none+i3";
+      User = "emilis";
+    };
+  };
 
   services.xserver.windowManager.i3 = {
     configFile = ./../../../dotfiles/i3/config;
