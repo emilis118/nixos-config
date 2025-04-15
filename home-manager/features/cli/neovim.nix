@@ -25,6 +25,10 @@
       ripgrep
       fd
       gcc # for treesitter
+      # for PDF
+      zathura
+      # for latex
+      texpresso
     ];
 
     plugins = with pkgs.vimPlugins; [
@@ -73,6 +77,12 @@
         p.tree-sitter-json
         # add others later
       ]))
+
+      {
+        plugin = "vimtex";
+        type = "lua";
+        config = "let g:vimtex_view_method = 'zathura'";
+      }
     ];
   };
 

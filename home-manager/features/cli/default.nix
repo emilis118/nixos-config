@@ -7,6 +7,7 @@
     ./tmux.nix
     ./zip.nix
     ./spreadsheet.nix
+    ./latex.nix
   ];
 
   home.packages = with pkgs; [
