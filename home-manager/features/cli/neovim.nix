@@ -79,7 +79,7 @@
       ]))
 
       {
-        plugin = "vimtex";
+        plugin = vimtex;
         type = "lua";
         config = "let g:vimtex_view_method = 'zathura'";
       }
