@@ -25,10 +25,6 @@
       ripgrep
       fd
       gcc # for treesitter
-      # for PDF
-      zathura
-      # for latex
-      texpresso
     ];
 
     plugins = with pkgs.vimPlugins; [
@@ -78,16 +74,25 @@
         # add others later
       ]))
 
+      # Latex
       {
         plugin = vimtex;
         type = "lua";
-        config = "let g:vimtex_view_method = 'zathura'";
+        config = ''          vim.g.vimtex_view_method = "zathura"
+                  vim.g.vimtex_compiler_method = "tectonic"'';
       }
+      texpresso-vim
     ];
   };
 
   # packages to have
   home.packages = with pkgs; [
     python312Full # to actually run it
+
+    # for PDF
+    zathura
+    # for latex
+    texpresso
+    tectonic
   ];
 }
