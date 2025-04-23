@@ -25,7 +25,6 @@
   services.libinput.enable = true;
 
   services.logind = {
-    enable = true;
     lidSwitch = "suspend";
     lidSwitchExternalPower = "suspend";
   };
