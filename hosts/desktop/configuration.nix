@@ -10,6 +10,7 @@
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
     ./../shared/global # auto picks default.nix
+    ./../shared/optional/blocky.nix
   ];
 
   # bluetooth

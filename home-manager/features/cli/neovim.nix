@@ -94,5 +94,6 @@
     # for latex
     texpresso
     tectonic
+    texlive.combined.scheme-small
   ];
 }
