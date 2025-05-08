@@ -30,9 +30,8 @@
   };
 
   hardware.enableAllFirmware = true;
-  hardware.cpu.intel.updateMicrocode = true;
 
-  services.xserver.videoDrivers = ["intel"]; # or "intel"
+  services.xserver.videoDrivers = ["modesetting"]; # or "intel"
   services.tlp.enable = true;
   services.thermald.enable = true;
 
