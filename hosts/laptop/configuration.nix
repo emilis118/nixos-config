@@ -28,4 +28,17 @@
     lidSwitch = "suspend";
     lidSwitchExternalPower = "suspend";
   };
+
+  hardware.enableAllFirmware = true;
+  hardware.cpu.intel.updateMicrocode = true;
+
+  services.xserver.videoDrivers = ["intel"]; # or "intel"
+  services.tlp.enable = true;
+  services.thermald.enable = true;
+
+  environment.systemPackages = with pkgs; [
+    lm_sensors
+    powertop
+    intel-gpu-tools
+  ];
 }
