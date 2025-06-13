@@ -9,7 +9,7 @@
 
   home.username = "emilis";
   home.homeDirectory = "/home/emilis";
-  home.stateVersion = "24.11";
+  home.stateVersion = "25.05";
 
   imports = [
     ../features/cli

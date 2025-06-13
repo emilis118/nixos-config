@@ -19,6 +19,10 @@
       i3blocks
       i3lock
       feh
+      (polybar.override {
+        i3Support = true;
+        pulseSupport = true; # if needed for volume
+      })
     ];
   };
 
@@ -35,5 +39,6 @@
         i3-msg workspace "9:Discord"
 
       '')
+    pkgs.font-awesome
   ];
 }
