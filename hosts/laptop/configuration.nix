@@ -39,7 +39,5 @@
     lm_sensors
     powertop
     intel-gpu-tools
-    # sound change with buttons
-    pamixer
   ];
 }

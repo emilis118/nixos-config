@@ -16,6 +16,9 @@
   services.xserver.enable = true;
 
   # programs.zsh.enable = true;
+  environment.systemPackages = with pkgs; [
+    pamixer
+  ];
 
   # Configure keymap in X11
   services.xserver.xkb = {

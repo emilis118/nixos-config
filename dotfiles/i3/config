@@ -222,6 +222,9 @@ mode "resize" {
 
 bindsym $mod+r mode "resize"
 
+# remove title bar:
+for_window [class=".*"] border none
+
 # target                 title     bg    text   indicator  border
 client.focused           $lavender $base $text  $rosewater $lavender
 client.focused_inactive  $overlay0 $base $text  $rosewater $overlay0
