@@ -11,6 +11,7 @@
     ./hardware-configuration.nix
     ./../shared/global # auto picks default.nix
     ./../shared/optional/blocky.nix
+    ./../shared/optional/performance.nix
     # ./../shared/optional/kde.nix  # temp kde while setting up
   ];
 
@@ -39,5 +40,6 @@
     lm_sensors
     powertop
     intel-gpu-tools
+    htop
   ];
 }
