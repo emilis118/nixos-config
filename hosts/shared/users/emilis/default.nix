@@ -13,6 +13,7 @@
     extraGroups = [
       "wheel"
       "networkmanager"
+      "gamemode"
     ];
 
     # packages = [pkgs.home-manager];

@@ -151,7 +151,7 @@ set $ws3 "3:Game"
 set $ws4 "4:VM"
 set $ws5 "5:Postman"
 set $ws6 "6"
-set $ws7 "7"
+set $ws7 "7:Steam"
 set $ws8 "8:Bluetooth"
 set $ws9 "9:Discord"
 set $ws10 "10:Spotify"
@@ -189,6 +189,7 @@ assign [class="^bluetuith$"] $ws8
 assign [class="Postman"] $ws5
 assign [class="cs2"] $ws3
 assign [class="^Minecraft"] $ws3
+assign [class="steam"] $ws7
 
 # reload the configuration file
 bindsym $mod+Shift+c reload
