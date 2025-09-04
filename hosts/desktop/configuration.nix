@@ -11,6 +11,7 @@
     ./hardware-configuration.nix
     ./../shared/global # auto picks default.nix
     ./../shared/optional/blocky.nix
+    ./../shared/optional/steam.nix
   ];
 
   # bluetooth
