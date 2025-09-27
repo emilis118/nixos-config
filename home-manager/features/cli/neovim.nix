@@ -93,8 +93,8 @@
     # for PDF
     zathura
     # for latex
-    texpresso
-    tectonic
-    texlive.combined.scheme-full
+    # texpresso
+    # tectonic
+    # texlive.combined.scheme-full
   ];
 }

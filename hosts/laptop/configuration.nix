@@ -10,10 +10,15 @@
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
     ./../shared/global # auto picks default.nix
-    ./../shared/optional/blocky.nix
+    # ./../shared/optional/blocky.nix
     ./../shared/optional/performance.nix
     # ./../shared/optional/kde.nix  # temp kde while setting up
+    ./../shared/optional/steam.nix
   ];
+
+  # bluetooth
+  hardware.bluetooth.enable = true;
+  hardware.bluetooth.powerOnBoot = true;
 
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
