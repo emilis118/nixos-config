@@ -1,7 +1,10 @@
-{pkgs, ...}: {
+{pkgs, ...}: let
+  wallpapers = import ../../../dotfiles/wallpaper {inherit pkgs;};
+in {
   services.xserver.windowManager.i3.enable = true;
   services.displayManager.defaultSession = "none+i3";
   services.displayManager.sddm.enable = true;
+  services.displayManager.sddm.autoNumlock = true;
   services.displayManager.sddm.settings = {
     Autologin = {
       Session = "none+i3";
@@ -12,19 +15,21 @@
     };
   };
 
-  services.xserver.windowManager.i3 = {
-    configFile = ./../../../dotfiles/i3/config;
-    extraPackages = with pkgs; [
-      i3status
-      i3blocks
-      i3lock
-      feh
-      (polybar.override {
-        i3Support = true;
-        pulseSupport = true; # if needed for volume
-      })
-    ];
-  };
+  # services.xserver.windowManager.i3 = {
+  #   configFile = ./../../../dotfiles/i3/config;
+  #   extraPackages = with pkgs; [
+  #     i3status
+  #     i3blocks
+  #     i3lock
+  #     feh
+  #     (polybar.override {
+  #       i3Support = true;
+  #       pulseSupport = true; # if needed for volume
+  #     })
+  #   ];
+  #   # extraSessionCommands = "exec_always --no-startup-id ${wallpapers}/bin/random-wallpaper ${wallpapers}/share/wallpapers";
+  #   # extraConfig = "exec_always --no-startup-id ${wallpapers}/bin/random-wallpaper ${wallpapers}/share/wallpapers";
+  # };
 
   environment.systemPackages = [
     (pkgs.writeShellScriptBin

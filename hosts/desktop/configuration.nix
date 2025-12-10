@@ -39,4 +39,5 @@
     nvidiaSettings = true;
     package = config.boot.kernelPackages.nvidiaPackages.stable;
   };
+  system.stateVersion = "24.11"; # Did you read the comment?
 }

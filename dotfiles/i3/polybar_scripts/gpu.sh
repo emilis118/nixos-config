@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 if ! command -v nvidia-smi >/dev/null 2>&1; then
-    echo "no nvidia-smi"
     exit 0
 fi
 

@@ -50,6 +50,7 @@
       conform-nvim
       # mason-nvim  # idk if use it or not
       # mason-lspconfig-nvim
+      transparent-nvim
 
       # harpoon requirements:
       plenary-nvim

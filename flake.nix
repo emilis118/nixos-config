@@ -49,6 +49,20 @@
         ];
         specialArgs = {inherit pkgs inputs username;};
       };
+
+      work_pc = nixpkgs.lib.nixosSystem {
+        modules = [
+          ./hosts/work_pc/configuration.nix
+          home-manager.nixosModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = false;
+            home-manager.users."emilis" = import ./home-manager/work_pc.nix;
+          }
+        ];
+        specialArgs = {inherit pkgs inputs username;};
+      };
+
     };
   };
 }

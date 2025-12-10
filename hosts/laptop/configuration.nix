@@ -47,4 +47,5 @@
     intel-gpu-tools
     htop
   ];
+  system.stateVersion = "24.11"; # Did you read the comment?
 }
