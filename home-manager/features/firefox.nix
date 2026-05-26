@@ -1,11 +1,19 @@
 #  firefox.nix
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}: {
+  programs.firefox.enable = true;
 
-{ pkgs, lib, config, ... }: {
-
-    programs.firefox.enable = true;
-
-    # home.packages = with pkgs; [
-    #     firefox
-    # ];
-                            }
-
+  xdg.mimeApps = {
+    enable = true;
+    defaultApplications = {
+      "application/pdf" = ["firefox.desktop"];
+    };
+  };
+  # home.packages = with pkgs; [
+  #     firefox
+  # ];
+}

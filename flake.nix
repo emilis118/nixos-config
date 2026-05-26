@@ -5,12 +5,14 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-25.05";
     home-manager.url = "github:nix-community/home-manager/release-25.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
+    claude-code.url = "github:sadjow/claude-code-nix";
   };
 
   outputs = {
     self,
     nixpkgs,
     home-manager,
+    claude-code,
     ...
   } @ inputs: let
     username = "emilis";
@@ -19,6 +21,7 @@
     pkgs = import nixpkgs {
       inherit system;
       config.allowUnfree = true;
+      overlays = [claude-code.overlays.default];
     };
   in {
     nixosConfigurations = {
@@ -33,7 +36,7 @@
             home-manager.users."emilis" = import ./home-manager/desktop.nix;
           }
         ];
-        specialArgs = {inherit pkgs inputs username;};
+        specialArgs = {inherit pkgs inputs username claude-code;};
       };
 
       # laptop
@@ -47,7 +50,7 @@
             home-manager.users."emilis" = import ./home-manager/laptop.nix;
           }
         ];
-        specialArgs = {inherit pkgs inputs username;};
+        specialArgs = {inherit pkgs inputs username claude-code;};
       };
 
       work_pc = nixpkgs.lib.nixosSystem {
@@ -60,9 +63,8 @@
             home-manager.users."emilis" = import ./home-manager/work_pc.nix;
           }
         ];
-        specialArgs = {inherit pkgs inputs username;};
+        specialArgs = {inherit pkgs inputs username claude-code;};
       };
-
     };
   };
 }

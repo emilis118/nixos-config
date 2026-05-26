@@ -111,10 +111,12 @@ in {
           "${modifier}+Return" = "exec alacritty";
           "${modifier}+Shift+q" = "kill";
           "${modifier}+Shift+r" = "restart";
-          "${modifier}+Shift+e" = "exec i3-msg exit";
+          # "${modifier}+Shift+e" = "exec i3-msg exit";
+          "${modifier}+Shift+e" = "exec --no-startup-id betterlockscreen -l dim";
           "${modifier}+d" = "exec rofi -show drun";
           "${modifier}+c" = "exec rofi -show calc";
           "${modifier}+r" = "mode \"resize\"";
+          "Print" = "exec flameshot gui";
         };
         # define modes / keybindings
         modes = {
@@ -137,6 +139,7 @@ in {
   home.packages = with pkgs; [
     picom
     i3lock
+    betterlockscreen
     feh
     (polybar.override {
       i3Support = true;

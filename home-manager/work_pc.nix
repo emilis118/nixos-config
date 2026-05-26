@@ -12,6 +12,8 @@
     ./features/remote.nix
     ./features/libreoffice.nix
     ./features/mattermost.nix
+    # ./features/bash_ct.nix
+    ./features/flameshot.nix
   ];
 
   xsession = {
@@ -32,7 +34,7 @@
         set $ws4 "4:VM"
         set $ws5 "5"
         set $ws6 "6"
-        set $ws7 "7:Steam"
+        set $ws7 "7"
         set $ws8 "8"
         set $ws9 "9:MM"
         set $ws10 "10:Email"

@@ -12,6 +12,7 @@ alias grep='grep --color=auto'
 PS1='[%n@%m %1~]%# '
 alias act="source ./env/bin/activate"
 alias shutdown="shutdown -h now"
+alias lab="ssh -i ~/.ssh/lab_pc cryolab@pxicryolab05.cern.ch"
 
 export PATH="$PATH:$HOME/.local/scripts/"
 bindkey -s '^f' "tmux-sessionizer\n"
