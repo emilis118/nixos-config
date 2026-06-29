@@ -9,6 +9,7 @@
     ./fonts.nix
     ./zsh.nix
     ./../optional/i3.nix
+    ./../optional/thunar.nix
     # ./../optional/kde.nix
     ./../users/emilis # home-manager
   ];

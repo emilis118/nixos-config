@@ -19,6 +19,7 @@
       clang-tools # for c/c++
       nixd # nix lsp
       alejandra # nix formatter
+      marksman # markdown LSP
       python312Packages.autopep8
       # for neovim
       xclip

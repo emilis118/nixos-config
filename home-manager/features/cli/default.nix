@@ -4,9 +4,11 @@
     ./git.nix
     ./alacritty.nix
     ./lf.nix
+    ./yazi.nix
     ./tmux.nix
     ./zip.nix
     ./spreadsheet.nix
+    ./slidev.nix
     ./claude.nix
   ];
 

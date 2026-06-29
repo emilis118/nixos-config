@@ -61,6 +61,13 @@
 
   programs.i3status.enable = false;
 
+  # CERN DFS (WebDAV) shortcut in the Thunar/GTK sidebar — same as the
+  # davs:// link you used in Nautilus. gvfs prompts for your CERN
+  # credentials on connect; nothing is stored in this repo.
+  xdg.configFile."gtk-3.0/bookmarks".text = ''
+    davs://dfs.cern.ch/dfs/ CERN DFS
+  '';
+
   home.packages = with pkgs; [
     picom
     i3lock

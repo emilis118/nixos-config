@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-25.05";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
     home-manager.url = "github:nix-community/home-manager/release-25.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     claude-code.url = "github:sadjow/claude-code-nix";
@@ -11,6 +12,7 @@
   outputs = {
     self,
     nixpkgs,
+    nixpkgs-unstable,
     home-manager,
     claude-code,
     ...
@@ -21,7 +23,18 @@
     pkgs = import nixpkgs {
       inherit system;
       config.allowUnfree = true;
-      overlays = [claude-code.overlays.default];
+      overlays = [
+        claude-code.overlays.default
+        # slidev-cli isn't in nixos-25.05; pull just that package from unstable.
+        (final: _prev: {
+          slidev-cli =
+            (import nixpkgs-unstable {
+              inherit system;
+              config.allowUnfree = true;
+            })
+            .slidev-cli;
+        })
+      ];
     };
   in {
     nixosConfigurations = {

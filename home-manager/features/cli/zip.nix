@@ -1,3 +1,3 @@
 {pkgs, ...}: {
-  home.packages = [pkgs.p7zip];
+  home.packages = with pkgs; [p7zip unzip];
 }
