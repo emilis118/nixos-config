@@ -24,10 +24,12 @@
       what = "cryolab@pxicryolab05.cern.ch:/home/cryolab";
       where = "/mnt/lab";
       type = "fuse.sshfs";
-      options = "nodev,noatime,allow_other,IdentityFile=/home/emilis/.ssh/lab_pc";
+      options = "nodev,noatime,allow_other,reconnect,ServerAliveInterval=15,ConnectTimeout=5,IdentityFile=/home/emilis/.ssh/lab_pc";
       after = ["network-online.target"];
       wants = ["network-online.target"];
-      wantedBy = ["multi-user.target"];
+      # No wantedBy here: only the automount unit is started at boot, so the
+      # sshfs connection is attempted on first access instead of blocking boot.
+      mountConfig.TimeoutSec = 15;
     }
   ];
 

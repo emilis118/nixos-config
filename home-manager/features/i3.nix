@@ -22,6 +22,14 @@ in {
         # };
         startup = [
           {
+            # sddm autologin drops straight into the session, so lock right
+            # away; boot then ends at the lockscreen while the apps below
+            # start behind it. Falls back to plain i3lock on a fresh machine
+            # where the betterlockscreen cache doesn't exist yet.
+            command = "betterlockscreen -l dim || ${pkgs.i3lock}/bin/i3lock -c 000000";
+            notification = false;
+          }
+          {
             command = "picom";
             always = true;
           }
