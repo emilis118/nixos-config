@@ -14,16 +14,15 @@
   };
 
   # change cpu governor to max on power
-  powerManagement.cpuFreqGovernor = "powersave";
   services.tlp = {
     enable = true;
     settings = {
       CPU_SCALING_GOVERNOR_ON_AC = "performance";
       CPU_SCALING_GOVERNOR_ON_BAT = "powersave";
+      CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
+      CPU_ENERGY_PERF_POLICY_ON_BAT = "balance_power";
     };
   };
-  # idk if leave this
-  services.auto-cpufreq.enable = true;
 
   # /tmp on tmpfs (ram)
   boot.tmp.useTmpfs = true;
