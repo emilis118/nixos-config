@@ -57,7 +57,7 @@
   hardware.bluetooth.powerOnBoot = true;
 
   # Networking
-  networking.hostName = "work-laptop";
+  networking.hostName = "lapte277203";
   networking.networkmanager.enable = true;
 
   # Enable OpenGL
