@@ -6,7 +6,10 @@
     vimAlias = true;
     vimdiffAlias = true;
     defaultEditor = true;
-    extraLuaConfig = ''
+    # no python/ruby remote plugins in use; adopt the new (26.05) defaults
+    withPython3 = false;
+    withRuby = false;
+    initLua = ''
       ${builtins.readFile ./../../../dotfiles/nvim/lua/emilis/remap.lua}
       ${builtins.readFile ./../../../dotfiles/nvim/lua/emilis/set.lua}
     '';

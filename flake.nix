@@ -19,11 +19,10 @@
   } @ inputs: let
     username = "emilis";
     system = "x86_64-linux";
-    # pkgs = nixpkgs.legacyPackages.${system};
-    pkgs = import nixpkgs {
-      inherit system;
-      config.allowUnfree = true;
-      overlays = [
+    # allowUnfree and hostPlatform are set inside the host configs
+    # (hosts/shared/global/base_config.nix and hardware-configuration.nix).
+    overlaysModule = {
+      nixpkgs.overlays = [
         claude-code.overlays.default
         # slidev-cli isn't in nixos-25.05; pull just that package from unstable.
         (final: _prev: {
@@ -42,6 +41,7 @@
       desktop = nixpkgs.lib.nixosSystem {
         modules = [
           ./hosts/desktop/configuration.nix
+          overlaysModule
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
@@ -49,13 +49,14 @@
             home-manager.users."emilis" = import ./home-manager/desktop.nix;
           }
         ];
-        specialArgs = {inherit pkgs inputs username claude-code;};
+        specialArgs = {inherit inputs username claude-code;};
       };
 
       # laptop
       laptop = nixpkgs.lib.nixosSystem {
         modules = [
           ./hosts/laptop/configuration.nix
+          overlaysModule
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
@@ -63,12 +64,13 @@
             home-manager.users."emilis" = import ./home-manager/laptop.nix;
           }
         ];
-        specialArgs = {inherit pkgs inputs username claude-code;};
+        specialArgs = {inherit inputs username claude-code;};
       };
 
       work_pc = nixpkgs.lib.nixosSystem {
         modules = [
           ./hosts/work_pc/configuration.nix
+          overlaysModule
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
@@ -76,12 +78,13 @@
             home-manager.users."emilis" = import ./home-manager/work_pc.nix;
           }
         ];
-        specialArgs = {inherit pkgs inputs username claude-code;};
+        specialArgs = {inherit inputs username claude-code;};
       };
 
       work_laptop = nixpkgs.lib.nixosSystem {
         modules = [
           ./hosts/work_laptop/configuration.nix
+          overlaysModule
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
@@ -89,7 +92,7 @@
             home-manager.users."emilis" = import ./home-manager/work_laptop.nix;
           }
         ];
-        specialArgs = {inherit pkgs inputs username claude-code;};
+        specialArgs = {inherit inputs username claude-code;};
       };
     };
   };

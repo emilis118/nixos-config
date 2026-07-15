@@ -1,7 +1,7 @@
 {pkgs, ...}: {
   programs.thunar = {
     enable = true;
-    plugins = with pkgs.xfce; [
+    plugins = with pkgs; [
       thunar-archive-plugin # create/extract archives from the right-click menu
       thunar-volman # auto-handle USB drives / removable media
     ];

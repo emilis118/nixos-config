@@ -72,9 +72,9 @@
   # trackpad
   services.libinput.enable = true;
 
-  services.logind = {
-    lidSwitch = "suspend";
-    lidSwitchExternalPower = "suspend";
+  services.logind.settings.Login = {
+    HandleLidSwitch = "suspend";
+    HandleLidSwitchExternalPower = "suspend";
   };
 
   hardware.enableAllFirmware = true;

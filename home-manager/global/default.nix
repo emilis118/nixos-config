@@ -20,6 +20,4 @@
   home.sessionVariables = {
     EDITOR = "nvim";
   };
-
-  nixpkgs.config.allowUnfree = true;
 }
