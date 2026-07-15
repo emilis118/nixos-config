@@ -12,7 +12,7 @@
     '';
     extraPackages = with pkgs; [
       nodejs # for some LSP servers
-      python312Full # for python
+      python3 # for python
       pyright
       lua-language-server # lua LSP
       rust-analyzer # for rust LSP
@@ -20,7 +20,7 @@
       nixd # nix lsp
       alejandra # nix formatter
       marksman # markdown LSP
-      python312Packages.autopep8
+      python314Packages.autopep8
       # for neovim
       xclip
       ripgrep
@@ -90,7 +90,7 @@
 
   # packages to have
   home.packages = with pkgs; [
-    python312Full # to actually run it
+    python3 # to actually run it
 
     # for PDF
     zathura

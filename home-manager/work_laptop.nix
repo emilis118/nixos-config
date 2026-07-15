@@ -14,6 +14,7 @@
     ./features/mattermost.nix
     # ./features/bash_ct.nix
     ./features/flameshot.nix
+    ./features/whatsapp.nix
   ];
 
   xsession = {
