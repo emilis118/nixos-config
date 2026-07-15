@@ -16,5 +16,14 @@
     rofi-power-menu
     rofi-pulse-select
     todofi-sh
+    networkmanager_dmenu # wifi picker, launched from the polybar wlan icon
   ];
+
+  # networkmanager_dmenu uses plain dmenu unless told to use rofi
+  xdg.configFile."networkmanager-dmenu/config.ini".text = ''
+    [dmenu]
+    dmenu_command = rofi -dmenu -i
+    compact = True
+    wifi_chars = ▂▄▆█
+  '';
 }

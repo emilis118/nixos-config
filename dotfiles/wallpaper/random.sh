@@ -1,7 +1,7 @@
 #!/bin/bash
 shopt -s nullglob
 
-wallpaper_dir="/etc/nixos/dotfiles/wallpaper"
+wallpaper_dir="$HOME/00_projects/nixos-config/dotfiles/wallpaper"
 
 files=("$wallpaper_dir"/*.jpg)
 count=${#files[@]}

@@ -10,6 +10,7 @@ with lib; let
 in {
   xsession = {
     enable = true;
+    numlock.enable = true; # numlockx on at session start
     windowManager.i3 = {
       enable = true;
       package = pkgs.i3; # or pkgs.i3-gaps, etc.
@@ -40,7 +41,7 @@ in {
           {command = "i3-msg 'workspace $ws1; exec firefox'";}
           {command = "i3-msg 'workspace $ws2; exec alacritty'";}
           {
-            command = "/etc/nixos/dotfiles/i3/polybar.sh";
+            command = "$HOME/00_projects/nixos-config/dotfiles/i3/polybar.sh";
             always = true;
           }
         ];

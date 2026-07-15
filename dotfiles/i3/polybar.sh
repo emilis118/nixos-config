@@ -9,7 +9,7 @@ polybar-msg cmd quit
 # Launch bar1 and bar2
 echo "---" | tee -a /tmp/polybar1.log
 # CHANGE PATH LATER !11
-polybar --config=/etc/nixos/dotfiles/i3/polybar.ini 2>&1 | tee -a /tmp/polybar1.log & disown
+polybar --config=$HOME/00_projects/nixos-config/dotfiles/i3/polybar.ini 2>&1 | tee -a /tmp/polybar1.log & disown
 # polybar --config=$HOME/tempdotfiles/dotfiles/i3/polybar.ini 2>&1 | tee -a /tmp/polybar1.log & disown
 
 echo "Bars launched..."

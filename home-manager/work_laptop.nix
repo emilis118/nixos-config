@@ -10,7 +10,7 @@
     ./features/wallpaper.nix
     ./features/i3.nix
     ./features/remote.nix
-    ./features/libreoffice.nix
+    ./features/onlyoffice.nix
     ./features/mattermost.nix
     # ./features/bash_ct.nix
     ./features/flameshot.nix
