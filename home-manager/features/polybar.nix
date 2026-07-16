@@ -441,7 +441,7 @@ in {
           type = "internal/fs";
           interval = 25;
           mount-0 = "/";
-          label-mounted = "%{F${yellow}}󱛟%{F-} %free%";
+          label-mounted = "%{F${yellow}}󰋊%{F-} %free%";
           label-unmounted-foreground = "\${colors.disabled}";
         };
 
@@ -546,14 +546,14 @@ in {
           interval = 5;
           format-connected = "<label-connected>";
           format-disconnected = "<label-disconnected>";
-          label-disconnected = "%{F${yellow}} %{F${dim}} disconnected";
+          label-disconnected = "%{F${yellow}}󰖪 %{F${dim}} disconnected";
         };
 
         "module/wlan" = {
           "inherit" = "network-base";
           interface-type = "wireless";
           # icon is clickable: opens a rofi network picker (networkmanager_dmenu)
-          label-connected = "%{A1:networkmanager_dmenu:}%{F${yellow}} %{F-} %essid%%{A}";
+          label-connected = "%{A1:networkmanager_dmenu:}%{F${yellow}}󰖩 %{F-} %essid%%{A}";
           # when disconnected show only a dimmed wifi-off icon, still clickable
           label-disconnected = "%{A1:networkmanager_dmenu:}%{F${dim}}󰖪 %{F-}%{A}";
         };
