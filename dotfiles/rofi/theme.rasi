@@ -25,7 +25,8 @@ window {
 
 mainbox {
     spacing: 8px;
-    children: [inputbar, listview, mode-switcher];
+    /* message must stay in the list: rofi-calc shows the live result there */
+    children: [inputbar, message, listview, mode-switcher];
 }
 
 inputbar {

@@ -145,6 +145,17 @@ in {
 
   programs.i3status.enable = false;
 
+  # Registers as the logind lock handler via xss-lock, so
+  # `loginctl lock-session` (used by the rofi power menu's "Lock screen")
+  # actually locks, and the screen locks before suspend. Without this the
+  # lock signal is silently dropped.
+  services.screen-locker = {
+    enable = true;
+    lockCmd = "betterlockscreen -l dim || ${pkgs.i3lock}/bin/i3lock -c 000000";
+    xautolock.enable = false; # no idle auto-lock, only explicit lock + suspend
+    xss-lock.extraOptions = ["--transfer-sleep-lock"];
+  };
+
   home.packages = with pkgs; [
     picom
     i3lock

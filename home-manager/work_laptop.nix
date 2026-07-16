@@ -40,9 +40,10 @@
         set $ws10 "10:Email"
 
         for_window [class=".*"] border none
-        for_window [class="*.py"] floating enable
+        for_window [class=".*\.py"] floating enable
 
         assign [class="Mattermost"] $ws9
+        assign [class="whatsapp-electron"] $ws9
         assign [class="Org.gnome.Nautilus"] $ws5
       '';
     };

@@ -3,7 +3,8 @@
     enable = true;
     plugins = with pkgs; [
       rofi-calc # calculator
-      rofi-top # process/resource monitor
+      # rofi-top removed: it divides by zero while redrawing (SIGFPE) and
+      # takes the whole rofi instance down with it, even from other modes.
     ];
     terminal = "${pkgs.alacritty}/bin/alacritty";
     theme = ../../dotfiles/rofi/theme.rasi;
@@ -11,7 +12,7 @@
       # Only modes that run inside a single rofi instance belong here.
       # The standalone wrappers (rofi-bluetooth, rofi-screenshot, ...) spawn
       # their own rofi window, so they are exposed as drun entries below.
-      modi = "drun,run,window,ssh,calc,top,power:rofi-power-menu";
+      modi = "drun,run,window,ssh,calc,power:rofi-power-menu";
       show-icons = true;
       icon-theme = "Papirus-Dark";
       sidebar-mode = true; # clickable mode tabs at the bottom
@@ -27,12 +28,12 @@
       display-window = "windows";
       display-ssh = "ssh";
       display-calc = "calc";
-      display-top = "top";
       display-power = "power";
     };
   };
 
   home.packages = with pkgs; [
+    htop # process monitor, replaces rofi-top; its desktop entry opens in alacritty from drun
     rofi-bluetooth
     rofi-screenshot
     rofi-power-menu

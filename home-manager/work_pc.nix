@@ -41,7 +41,7 @@
         set $ws10 "10:Email"
 
         for_window [class=".*"] border none
-        for_window [class="*.py"] floating enable
+        for_window [class=".*\.py"] floating enable
         workspace $ws1 output HDMI-2
         workspace $ws2 output HDMI-2
         workspace $ws3 output HDMI-2
@@ -54,6 +54,7 @@
         workspace $ws10 output DP-3
 
         assign [class="Mattermost"] $ws9
+        assign [class="whatsapp-electron"] $ws9
         assign [class="Org.gnome.Nautilus"] $ws5
 
       '';
