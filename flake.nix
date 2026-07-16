@@ -7,6 +7,12 @@
     home-manager.url = "github:nix-community/home-manager/release-26.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     claude-code.url = "github:sadjow/claude-code-nix";
+    # nixy's neovim (built with nvf); flake = false so we don't pull in
+    # nixy's heavy inputs (hyprland, stylix, ...) — we only use its nvf modules.
+    nvf.url = "github:notashelf/nvf";
+    nvf.inputs.nixpkgs.follows = "nixpkgs";
+    nixy.url = "github:anotherhadi/nixy";
+    nixy.flake = false;
   };
 
   outputs = {
@@ -25,6 +31,25 @@
       nixpkgs.overlays = [
         claude-code.overlays.default
         # slidev-cli isn't in nixos-25.05; pull just that package from unstable.
+        # nixy's neovim as a separate package, exposed as `nnvim` in neovim.nix
+        (final: _prev: {
+          nixy-nvim =
+            (inputs.nvf.lib.neovimConfiguration {
+              pkgs = final;
+              modules =
+                map (m: "${inputs.nixy}/home/programs/nvf/${m}.nix") [
+                  "options"
+                  "languages"
+                  "picker"
+                  "snacks"
+                  "keymaps"
+                  "utils"
+                  "mini"
+                ]
+                ++ [./home-manager/features/cli/nnvim-overrides.nix];
+            })
+            .neovim;
+        })
         (final: _prev: {
           slidev-cli =
             (import nixpkgs-unstable {

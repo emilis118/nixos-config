@@ -93,6 +93,13 @@
 
   # packages to have
   home.packages = with pkgs; [
+    # nixy's neovim (github:anotherhadi/nixy) under a separate name,
+    # so it doesn't touch the main nvim setup above
+    (runCommand "nnvim" {} ''
+      mkdir -p $out/bin
+      ln -s ${nixy-nvim}/bin/nvim $out/bin/nnvim
+    '')
+
     python3 # to actually run it
 
     # for PDF
