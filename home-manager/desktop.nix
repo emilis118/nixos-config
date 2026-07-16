@@ -13,6 +13,8 @@
     ./features/flameshot.nix
   ];
 
+  polybarModules.gpu = true;
+
   xsession = {
     windowManager.i3 = {
       config = {

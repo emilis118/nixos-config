@@ -8,6 +8,8 @@ with lib; let
   modifier = "Mod1"; # alt
   second_mod = "Mod4"; # win key
 in {
+  imports = [./polybar.nix];
+
   xsession = {
     enable = true;
     numlock.enable = true; # numlockx on at session start
@@ -41,8 +43,11 @@ in {
           {command = "i3-msg 'workspace $ws1; exec firefox'";}
           {command = "i3-msg 'workspace $ws2; exec alacritty'";}
           {
-            command = "$HOME/00_projects/nixos-config/dotfiles/i3/polybar.sh";
+            # polybar runs as a systemd user service (features/polybar.nix);
+            # restarting here re-launches the per-monitor bars on i3 restart
+            command = "systemctl --user restart polybar.service";
             always = true;
+            notification = false;
           }
         ];
         bars = [];
@@ -161,9 +166,5 @@ in {
     i3lock
     betterlockscreen
     feh
-    (polybar.override {
-      i3Support = true;
-      pulseSupport = true;
-    })
   ];
 }

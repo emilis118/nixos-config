@@ -13,6 +13,8 @@
     ./features/flameshot.nix
   ];
 
+  polybarModules.battery = true;
+
   # Single internal display: same layout as desktop but no xrandr pinning.
   xsession = {
     windowManager.i3 = {

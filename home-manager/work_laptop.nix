@@ -45,11 +45,17 @@
         assign [class="Mattermost"] $ws9
         assign [class="whatsapp-electron"] $ws9
         assign [class="Org.gnome.Nautilus"] $ws5
+
+        for_window [title="LHC Page 1"] floating enable
       '';
     };
   };
 
-  programs.i3status.enable = false;
+  polybarModules = {
+    # off while the beam is down (LS3); flip when the LHC is back
+    lhc = false;
+    battery = true;
+  };
 
   # CERN DFS (WebDAV) shortcut in the Thunar/GTK sidebar — same as the
   # davs:// link you used in Nautilus. gvfs prompts for your CERN
@@ -57,14 +63,4 @@
   xdg.configFile."gtk-3.0/bookmarks".text = ''
     davs://dfs.cern.ch/dfs/ CERN DFS
   '';
-
-  home.packages = with pkgs; [
-    picom
-    i3lock
-    feh
-    (polybar.override {
-      i3Support = true;
-      pulseSupport = true;
-    })
-  ];
 }
