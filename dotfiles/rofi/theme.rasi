@@ -1,0 +1,117 @@
+/* rofi theme matching the polybar colors (dotfiles/i3/polybar.ini) */
+
+* {
+    bg:        #282A2E;
+    bg-alt:    #373B41;
+    fg:        #C5C8C6;
+    primary:   #F0C674;
+    secondary: #8ABEB7;
+    alert:     #A54242;
+    disabled:  #707880;
+
+    background-color: transparent;
+    text-color: @fg;
+    font: "JetBrainsMono Nerd Font 12";
+}
+
+window {
+    background-color: @bg;
+    border: 2px;
+    border-color: @primary;
+    border-radius: 4px;
+    padding: 10px;
+    width: 42%;
+}
+
+mainbox {
+    spacing: 8px;
+    children: [inputbar, listview, mode-switcher];
+}
+
+inputbar {
+    background-color: @bg-alt;
+    border-radius: 4px;
+    padding: 8px 10px;
+    spacing: 8px;
+    children: [prompt, entry];
+}
+
+prompt {
+    text-color: @primary;
+}
+
+entry {
+    placeholder: "search...";
+    placeholder-color: @disabled;
+}
+
+listview {
+    lines: 10;
+    spacing: 2px;
+    scrollbar: false;
+    fixed-height: false;
+}
+
+element {
+    padding: 6px 10px;
+    spacing: 10px;
+    border-radius: 4px;
+}
+
+element-icon {
+    size: 1.2em;
+}
+
+element-text {
+    text-color: inherit;
+}
+
+element normal.normal, element alternate.normal {
+    background-color: transparent;
+}
+
+element selected.normal {
+    background-color: @bg-alt;
+    text-color: @primary;
+}
+
+element normal.urgent, element selected.urgent {
+    text-color: @alert;
+}
+
+element normal.active, element selected.active {
+    text-color: @secondary;
+}
+
+mode-switcher {
+    spacing: 6px;
+}
+
+button {
+    padding: 6px;
+    border-radius: 4px;
+    background-color: @bg-alt;
+    text-color: @disabled;
+}
+
+button selected {
+    background-color: @primary;
+    text-color: @bg;
+}
+
+message {
+    background-color: @bg-alt;
+    border-radius: 4px;
+    padding: 8px;
+}
+
+textbox {
+    text-color: @fg;
+}
+
+error-message {
+    background-color: @bg;
+    border: 2px;
+    border-color: @alert;
+    padding: 10px;
+}
