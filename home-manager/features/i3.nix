@@ -7,6 +7,44 @@
 with lib; let
   modifier = "Mod1"; # alt
   second_mod = "Mod4"; # win key
+
+  # Single entry point for locking. Falls back to plain i3lock on a fresh
+  # machine where the betterlockscreen cache doesn't exist yet. On hosts
+  # with a fingerprint reader (services.fprintd + enrolled finger) it also
+  # watches fprintd-verify while locked, so touching the sensor unlocks
+  # without having to press Enter first (i3lock only starts PAM - and with
+  # it the fingerprint scan - on submit).
+  lockScreen = pkgs.writeShellScriptBin "lock-screen" ''
+    export PATH=${makeBinPath [pkgs.procps pkgs.gnugrep pkgs.coreutils]}:/run/current-system/sw/bin:$PATH
+
+    flag=$(mktemp -u /tmp/lock-screen-fprint.XXXXXX)
+
+    fprint_watch() {
+        command -v fprintd-verify >/dev/null 2>&1 || return 0
+        fprintd-list "$USER" 2>/dev/null | grep -q '#' || return 0
+        sleep 0.5 # let the locker window come up
+        while pgrep -x i3lock-color >/dev/null || pgrep -x i3lock >/dev/null; do
+            if fprintd-verify >/dev/null 2>&1; then
+                touch "$flag"
+                pkill -x i3lock-color 2>/dev/null
+                pkill -x i3lock 2>/dev/null
+                return 0
+            fi
+            sleep 1
+        done
+    }
+
+    fprint_watch &
+    watcher=$!
+
+    # a locker killed by the fingerprint watcher exits non-zero; the flag
+    # tells that apart from betterlockscreen failing to start
+    ${pkgs.betterlockscreen}/bin/betterlockscreen -l dim \
+        || { [ -e "$flag" ] || ${pkgs.i3lock}/bin/i3lock -n -c 000000; }
+
+    kill "$watcher" 2>/dev/null
+    rm -f "$flag"
+  '';
 in {
   imports = [./polybar.nix];
 
@@ -27,9 +65,8 @@ in {
           {
             # sddm autologin drops straight into the session, so lock right
             # away; boot then ends at the lockscreen while the apps below
-            # start behind it. Falls back to plain i3lock on a fresh machine
-            # where the betterlockscreen cache doesn't exist yet.
-            command = "betterlockscreen -l dim || ${pkgs.i3lock}/bin/i3lock -c 000000";
+            # start behind it.
+            command = "${lockScreen}/bin/lock-screen";
             notification = false;
           }
           {
@@ -126,7 +163,7 @@ in {
           "${modifier}+Shift+q" = "kill";
           "${modifier}+Shift+r" = "restart";
           # "${modifier}+Shift+e" = "exec i3-msg exit";
-          "${modifier}+Shift+e" = "exec --no-startup-id betterlockscreen -l dim";
+          "${modifier}+Shift+e" = "exec --no-startup-id ${lockScreen}/bin/lock-screen";
           "${modifier}+d" = "exec rofi -show drun";
           "${modifier}+c" = "exec rofi -show calc";
           "${modifier}+r" = "mode \"resize\"";
@@ -156,7 +193,7 @@ in {
   # lock signal is silently dropped.
   services.screen-locker = {
     enable = true;
-    lockCmd = "betterlockscreen -l dim || ${pkgs.i3lock}/bin/i3lock -c 000000";
+    lockCmd = "${lockScreen}/bin/lock-screen";
     xautolock.enable = false; # no idle auto-lock, only explicit lock + suspend
     xss-lock.extraOptions = ["--transfer-sleep-lock"];
   };
@@ -166,5 +203,7 @@ in {
     i3lock
     betterlockscreen
     feh
+    arandr # drag-and-drop monitor layout GUI
+    lockScreen
   ];
 }

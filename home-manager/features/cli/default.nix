@@ -1,5 +1,6 @@
 {pkgs, ...}: {
   imports = [
+    ./zsh.nix
     ./neovim.nix
     ./git.nix
     ./alacritty.nix

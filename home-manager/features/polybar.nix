@@ -329,6 +329,7 @@ with lib; let
 
   modulesRight = concatStringsSep " " (
     ["wallpaper" "volume"]
+    ++ optional cfg.backlight "backlight"
     ++ optional cfg.battery "battery"
     ++ ["filesystem" "memory" "cpu"]
     ++ optional cfg.gpu "gpu"
@@ -338,6 +339,7 @@ with lib; let
   );
 in {
   options.polybarModules = {
+    backlight = mkEnableOption "screen backlight module in polybar";
     battery = mkEnableOption "battery module in polybar";
     gpu = mkEnableOption "nvidia GPU module in polybar";
     lhc = mkEnableOption "LHC Page 1 module in polybar";
@@ -562,6 +564,14 @@ in {
           exec = "${ethScript}";
           tail = true;
           click-left = "${ethScript} toggle";
+        };
+
+        # laptop panel brightness; scroll on the module to change it
+        "module/backlight" = {
+          type = "internal/backlight";
+          enable-scroll = true;
+          format = "<label>";
+          label = "%{F${yellow}}󰃞%{F-} %percentage%";
         };
 
         "module/battery" = {

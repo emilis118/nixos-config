@@ -30,16 +30,26 @@
   # trackpad
   services.libinput.enable = true;
 
+  # Lid close suspends immediately, then hibernates to disk after 30 min so
+  # a closed laptop doesn't drain the battery. Lid close while docked
+  # (external monitor attached) is still ignored for clamshell use.
   services.logind.settings.Login = {
-    HandleLidSwitch = "suspend";
-    HandleLidSwitchExternalPower = "suspend";
+    HandleLidSwitch = "suspend-then-hibernate";
+    HandleLidSwitchExternalPower = "suspend-then-hibernate";
   };
+  systemd.sleep.settings.Sleep.HibernateDelaySec = "30min";
+  # hibernate image lives in the swap partition (hardware-configuration.nix)
+  boot.resumeDevice = "/dev/disk/by-uuid/3ee88bae-d698-4c4c-830d-78c04bc11729";
 
   hardware.enableAllFirmware = true;
 
   services.xserver.videoDrivers = ["modesetting"]; # or "intel"
   services.tlp.enable = true;
   services.thermald.enable = true;
+
+  # auto-apply saved xrandr profiles on monitor hotplug
+  # (save one per docking spot with `autorandr --save <name>`)
+  services.autorandr.enable = true;
 
   environment.systemPackages = with pkgs; [
     lm_sensors

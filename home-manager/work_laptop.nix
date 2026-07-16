@@ -47,6 +47,9 @@
         assign [class="Org.gnome.Nautilus"] $ws5
 
         for_window [title="LHC Page 1"] floating enable
+
+        bindsym XF86MonBrightnessUp exec --no-startup-id brightnessctl set +5%
+        bindsym XF86MonBrightnessDown exec --no-startup-id brightnessctl set 5%-
       '';
     };
   };
@@ -55,7 +58,10 @@
     # off while the beam is down (LS3); flip when the LHC is back
     lhc = false;
     battery = true;
+    backlight = true;
   };
+
+  home.packages = [pkgs.brightnessctl];
 
   # CERN DFS (WebDAV) shortcut in the Thunar/GTK sidebar — same as the
   # davs:// link you used in Nautilus. gvfs prompts for your CERN

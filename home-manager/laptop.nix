@@ -1,4 +1,4 @@
-{
+{pkgs, ...}: {
   imports = [
     ./global # default.nix
     ./features/discord.nix
@@ -13,7 +13,12 @@
     ./features/flameshot.nix
   ];
 
-  polybarModules.battery = true;
+  polybarModules = {
+    battery = true;
+    backlight = true;
+  };
+
+  home.packages = [pkgs.brightnessctl];
 
   # Single internal display: same layout as desktop but no xrandr pinning.
   xsession = {
@@ -48,6 +53,9 @@
         bindsym XF86AudioRaiseVolume exec --no-startup-id pamixer -i 5
         bindsym XF86AudioLowerVolume exec --no-startup-id pamixer -d 5
         bindsym XF86AudioMute exec --no-startup-id pamixer -t
+
+        bindsym XF86MonBrightnessUp exec --no-startup-id brightnessctl set +5%
+        bindsym XF86MonBrightnessDown exec --no-startup-id brightnessctl set 5%-
       '';
     };
   };

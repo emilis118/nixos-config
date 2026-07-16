@@ -72,14 +72,35 @@
   # trackpad
   services.libinput.enable = true;
 
+  # Lid close suspends immediately, then hibernates to disk after 30 min so
+  # a closed laptop doesn't drain the battery. Lid close while docked
+  # (external monitor attached) is still ignored for clamshell use.
   services.logind.settings.Login = {
-    HandleLidSwitch = "suspend";
-    HandleLidSwitchExternalPower = "suspend";
+    HandleLidSwitch = "suspend-then-hibernate";
+    HandleLidSwitchExternalPower = "suspend-then-hibernate";
   };
+  systemd.sleep.settings.Sleep.HibernateDelaySec = "30min";
+  # hibernate image lives in the swap partition (hardware-configuration.nix)
+  boot.resumeDevice = "/dev/disk/by-uuid/03305833-14ac-47ea-85c8-fd036c5b33a2";
+
+  # Fingerprint reader (enroll with `fprintd-enroll`). This was previously
+  # enabled in the laptop's pre-flake /etc/nixos config and silently dropped
+  # on the first flake rebuild. Adds fingerprint to sudo/login PAM stacks.
+  services.fprintd.enable = true;
+  # ...but keep the lock screen password-only at the PAM level: fingerprint
+  # unlock there is handled by the lock-screen watcher script (touch works
+  # without pressing Enter first), and this keeps password+Enter instant
+  # instead of waiting out a fingerprint timeout.
+  security.pam.services.i3lock.fprintAuth = false;
+  security.pam.services.i3lock-color.fprintAuth = false;
 
   hardware.enableAllFirmware = true;
 
   services.xserver.videoDrivers = ["modesetting"]; # or "intel"
+
+  # auto-apply saved xrandr profiles on monitor hotplug
+  # (save one per docking spot with `autorandr --save <name>`)
+  services.autorandr.enable = true;
 
   # power management
   services.tlp.enable = true;
