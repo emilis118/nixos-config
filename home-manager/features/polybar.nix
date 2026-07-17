@@ -325,26 +325,23 @@ with lib; let
   # click. Loops so volume/mute clicks keep the menu open; Escape or the
   # mixer button leave.
   volumeMenuScript = pkgs.writeShellScript "polybar-volume-menu" ''
-    export PATH=${makeBinPath [pkgs.pamixer pkgs.xdotool pkgs.xrandr pkgs.gawk pkgs.coreutils]}:${config.home.profileDirectory}/bin:$PATH
+    export PATH=${makeBinPath [pkgs.pamixer pkgs.xdotool pkgs.i3 pkgs.jq pkgs.coreutils]}:${config.home.profileDirectory}/bin:$PATH
 
     theme=${../../dotfiles/rofi/volume-applet.rasi}
     sel=2 # start on the mute button
 
     # Pin the window's top-right corner under the pointer: find the monitor
     # containing it and the pointer's offset from that monitor's right edge.
-    # (rofi's own -m -3 "place at mouse" puts the window off-screen in 2.0.)
+    # (rofi's own -m -3 "place at mouse" puts the window off-screen in 2.0.
+    # Don't use xrandr here: any query, even --listactivemonitors, makes the
+    # X server re-probe the outputs — 1-2s of the popup feeling stuck. i3
+    # already knows the layout and answers over IPC in milliseconds.)
     eval "$(xdotool getmouselocation --shell)" # sets X and Y
-    pos=$(xrandr --listactivemonitors | awk -v x="$X" -v y="$Y" '
-        NR > 1 {
-            split($3, p, "+")
-            split(p[1], d, "x")
-            sub(/\/.*/, "", d[1])
-            sub(/\/.*/, "", d[2])
-            if (x >= p[2] + 0 && x < p[2] + d[1] && y >= p[3] + 0 && y < p[3] + d[2]) {
-                print $NF, x - p[2] - d[1]
-                exit
-            }
-        }')
+    pos=$(i3-msg -t get_outputs | jq -r --argjson mx "$X" --argjson my "$Y" '
+        first(.[] | select(.active
+            and .rect.x <= $mx and $mx < .rect.x + .rect.width
+            and .rect.y <= $my and $my < .rect.y + .rect.height))
+        | "\(.name) \($mx - .rect.x - .rect.width)"')
     place=()
     [ -n "$pos" ] && place=(-m "''${pos% *}" -theme-str "window { x-offset: ''${pos#* }px; }")
 

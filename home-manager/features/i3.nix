@@ -166,6 +166,7 @@ in {
           "${modifier}+Shift+e" = "exec --no-startup-id ${lockScreen}/bin/lock-screen";
           "${modifier}+d" = "exec rofi -show drun";
           "${modifier}+c" = "exec rofi -show calc";
+          "${modifier}+o" = "exec rofi -show bookmarks"; # o(pen) a web bookmark on ws1
           "${modifier}+r" = "mode \"resize\"";
           "Print" = "exec flameshot gui";
         };
