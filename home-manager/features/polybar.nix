@@ -321,6 +321,71 @@ with lib; let
     exec firefox "https://op-webtools.web.cern.ch/vistar/vistars.php?usr=LHC1"
   '';
 
+  # adi1090x-style applet: one row of icon buttons popped out under the
+  # click. Loops so volume/mute clicks keep the menu open; Escape or the
+  # mixer button leave.
+  volumeMenuScript = pkgs.writeShellScript "polybar-volume-menu" ''
+    export PATH=${makeBinPath [pkgs.pamixer pkgs.xdotool pkgs.xrandr pkgs.gawk pkgs.coreutils]}:${config.home.profileDirectory}/bin:$PATH
+
+    theme=${../../dotfiles/rofi/volume-applet.rasi}
+    sel=2 # start on the mute button
+
+    # Pin the window's top-right corner under the pointer: find the monitor
+    # containing it and the pointer's offset from that monitor's right edge.
+    # (rofi's own -m -3 "place at mouse" puts the window off-screen in 2.0.)
+    eval "$(xdotool getmouselocation --shell)" # sets X and Y
+    pos=$(xrandr --listactivemonitors | awk -v x="$X" -v y="$Y" '
+        NR > 1 {
+            split($3, p, "+")
+            split(p[1], d, "x")
+            sub(/\/.*/, "", d[1])
+            sub(/\/.*/, "", d[2])
+            if (x >= p[2] + 0 && x < p[2] + d[1] && y >= p[3] + 0 && y < p[3] + d[2]) {
+                print $NF, x - p[2] - d[1]
+                exit
+            }
+        }')
+    place=()
+    [ -n "$pos" ] && place=(-m "''${pos% *}" -theme-str "window { x-offset: ''${pos#* }px; }")
+
+    while :; do
+        vol=$(pamixer --get-volume)
+        urgent=()
+        if [ "$(pamixer --get-mute)" = "true" ]; then
+            mute_icon="󰝟"
+            status="muted ($vol%)"
+            urgent+=(1)
+        else
+            mute_icon="󰕾"
+            status="volume $vol%"
+        fi
+        if [ "$(pamixer --default-source --get-mute)" = "true" ]; then
+            mic_icon="󰍭"
+            urgent+=(3)
+        else
+            mic_icon="󰍬"
+        fi
+
+        extra=()
+        [ "''${#urgent[@]}" -gt 0 ] && extra=(-u "$(IFS=,; echo "''${urgent[*]}")")
+
+        idx=$(printf '󰝞\n%s\n󰝝\n%s\n󰒓\n' "$mute_icon" "$mic_icon" | rofi -dmenu \
+            -theme "$theme" -mesg "$status" -format i \
+            -selected-row "$sel" "''${place[@]}" "''${extra[@]}" \
+            -me-select-entry "" -me-accept-entry MousePrimary)
+
+        case "$idx" in
+            0) pamixer -d 5 ;;
+            1) pamixer -t ;;
+            2) pamixer -i 5 ;;
+            3) pamixer --default-source -t ;;
+            4) exec ${pkgs.pavucontrol}/bin/pavucontrol ;;
+            *) exit 0 ;;
+        esac
+        sel=$idx
+    done
+  '';
+
   # rofi-power-menu is spawned by rofi from PATH, hence the export
   powermenuScript = pkgs.writeShellScript "polybar-powermenu" ''
     export PATH=${config.home.profileDirectory}/bin:$PATH
@@ -454,7 +519,7 @@ in {
           label-volume = "%{F${yellow}}󰕾%{F-} %percentage%";
           format-muted = "<label-muted>";
           label-muted = "%{F${red}}󰝟%{F-} %percentage%";
-          click-right = "${pkgs.pavucontrol}/bin/pavucontrol";
+          click-right = "${volumeMenuScript}";
         };
 
         "module/memory" = {

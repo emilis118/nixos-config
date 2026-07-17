@@ -3,7 +3,10 @@
 #
 # Copilot's default suggestion keys use Alt (<M->), which clashes with
 # i3's $mod = Mod1; move them to the Win/Super key (<D-> in nvim notation).
-{
+{lib, ...}: {
+  # nixy still uses the deprecated `prettierd` formatter name; nvf renamed it.
+  vim.languages.markdown.format.type = lib.mkForce ["prettier"];
+
   vim.assistant.copilot.mappings = {
     suggestion = {
       accept = "<D-l>";

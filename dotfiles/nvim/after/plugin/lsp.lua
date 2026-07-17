@@ -48,15 +48,11 @@
 -- })
 --
 
-local lspconfig = require("lspconfig")
-
--- Enable LSP servers
-local servers = { "lua_ls", "clangd", "rust_analyzer", "pyright", "nixd", "marksman" }
-for _, server in ipairs(servers) do
-  lspconfig[server].setup({
-    capabilities = require("cmp_nvim_lsp").default_capabilities(),
-  })
-end
+-- Enable LSP servers (nvim 0.11+ API; nvim-lspconfig only provides the server configs)
+vim.lsp.config("*", {
+  capabilities = require("cmp_nvim_lsp").default_capabilities(),
+})
+vim.lsp.enable({ "lua_ls", "clangd", "rust_analyzer", "pyright", "nixd", "marksman" })
 
 -- Keybindings for LSP
 vim.keymap.set("n", "gd", vim.lsp.buf.definition, { desc = "Go to Definition" })
