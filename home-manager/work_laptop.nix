@@ -15,6 +15,7 @@
     # ./features/bash_ct.nix
     ./features/flameshot.nix
     ./features/whatsapp.nix
+    ./features/thunderbird.nix
   ];
 
   xsession = {
