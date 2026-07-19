@@ -15,6 +15,7 @@
     ../features/cli
     ../features/firefox.nix
     ../features/rofi.nix
+    ../features/dunst.nix
   ];
 
   home.sessionVariables = {

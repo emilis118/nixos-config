@@ -39,6 +39,8 @@
 
         for_window [class=".*"] border none
         for_window [class=".*\.py"] floating enable
+        for_window [class="net-runelite-client-RuneLite"] floating enable
+        for_window [class="net-runelite-launcher-Launcher"] floating enable
 
         assign [class="net-runelite-client-RuneLite"] $ws4
         assign [class="discord"] $ws9

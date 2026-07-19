@@ -2,6 +2,7 @@
   imports = [
     ./zsh.nix
     ./neovim.nix
+    ./neovim2.nix
     ./git.nix
     ./alacritty.nix
     ./lf.nix

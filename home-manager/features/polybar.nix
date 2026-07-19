@@ -651,10 +651,10 @@ in {
           label-discharging = "%percentage%% %consumption% W";
           label-full = "%{F${yellow}}󰂄%{F-} Full";
           label-low = "%{F${red}}BATTERY LOW%{F-} %percentage%%";
-          ramp-capacity = ["" "" "" "" ""];
-          animation-charging = ["" "" "" "" ""];
+          ramp-capacity = ["" "" "" "" ""];
+          animation-charging = ["" "" "" "" ""];
           animation-charging-framerate = 750;
-          animation-discharging = ["" "" "" "" ""];
+          animation-discharging = ["" "" "" "" ""];
           animation-discharging-framerate = 500;
           animation-low = ["!" ""];
           animation-low-framerate = 200;

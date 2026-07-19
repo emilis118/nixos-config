@@ -6,44 +6,8 @@
   # Web bookmarks surfaced as a "bookmarks" tab in rofi. Picking one focuses
   # workspace 1 first, so the new tab lands in the Firefox window living
   # there (firefox opens URLs in the most recently focused window).
-  # Icon names come from papirus; add entries here as needed.
-  bookmarks = [
-    {
-      name = "Outlook";
-      url = "https://outlook.office.com/mail/";
-      icon = "ms-outlook";
-    }
-    {
-      name = "Marketplace";
-      url = "https://marketplace.web.cern.ch/";
-      icon = "";
-    }
-    {
-      name = "Cryolab meeting";
-      url = "https://indico.cern.ch/category/20940/";
-      icon = "";
-    }
-    {
-      name = "Cryolab seminar";
-      url = "https://indico.cern.ch/category/19190/";
-      icon = "";
-    }
-    {
-      name = "GitLab";
-      url = "https://gitlab.cern.ch/";
-      icon = "gitlab";
-    }
-    {
-      name = "Messenger";
-      url = "https://www.messenger.com/t/8920332208057212/";
-      icon = "fbmessenger";
-    }
-    {
-      name = "GitHub";
-      url = "https://github.com/";
-      icon = "github";
-    }
-  ];
+  # The list is shared with firefox; edit it in bookmarks.nix.
+  bookmarks = import ./bookmarks.nix;
 
   rofi-bookmarks = pkgs.writeShellScriptBin "rofi-bookmarks" ''
     # rofi script mode: listed without arguments, re-invoked with the chosen

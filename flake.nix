@@ -3,22 +3,26 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
-    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
     home-manager.url = "github:nix-community/home-manager/release-26.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     claude-code.url = "github:sadjow/claude-code-nix";
+    # track ani-cli master directly so `nix flake update` always gets the
+    # newest script instead of waiting for the nixpkgs version bump
+    ani-cli-src.url = "github:pystardust/ani-cli";
+    ani-cli-src.flake = false;
     # nixy's neovim (built with nvf); flake = false so we don't pull in
     # nixy's heavy inputs (hyprland, stylix, ...) — we only use its nvf modules.
     nvf.url = "github:notashelf/nvf";
     nvf.inputs.nixpkgs.follows = "nixpkgs";
     nixy.url = "github:anotherhadi/nixy";
     nixy.flake = false;
+    nixvim.url = "github:nix-community/nixvim/nixos-26.05";
+    nixvim.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = {
     self,
     nixpkgs,
-    nixpkgs-unstable,
     home-manager,
     claude-code,
     ...
@@ -30,7 +34,12 @@
     overlaysModule = {
       nixpkgs.overlays = [
         claude-code.overlays.default
-        # slidev-cli isn't in nixos-25.05; pull just that package from unstable.
+        (_final: prev: {
+          ani-cli = prev.ani-cli.overrideAttrs (_old: {
+            version = "master-${inputs.ani-cli-src.shortRev or "dirty"}";
+            src = inputs.ani-cli-src;
+          });
+        })
         # nixy's neovim as a separate package, exposed as `nnvim` in neovim.nix
         (final: _prev: {
           nixy-nvim =
@@ -50,14 +59,6 @@
             })
             .neovim;
         })
-        (final: _prev: {
-          slidev-cli =
-            (import nixpkgs-unstable {
-              inherit system;
-              config.allowUnfree = true;
-            })
-            .slidev-cli;
-        })
       ];
     };
   in {
@@ -71,6 +72,7 @@
           {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = false;
+            home-manager.extraSpecialArgs = {inherit inputs;};
             home-manager.users."emilis" = import ./home-manager/desktop.nix;
           }
         ];
@@ -86,6 +88,7 @@
           {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = false;
+            home-manager.extraSpecialArgs = {inherit inputs;};
             home-manager.users."emilis" = import ./home-manager/laptop.nix;
           }
         ];
@@ -100,6 +103,7 @@
           {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = false;
+            home-manager.extraSpecialArgs = {inherit inputs;};
             home-manager.users."emilis" = import ./home-manager/work_pc.nix;
           }
         ];
@@ -114,6 +118,7 @@
           {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = false;
+            home-manager.extraSpecialArgs = {inherit inputs;};
             home-manager.users."emilis" = import ./home-manager/work_laptop.nix;
           }
         ];
