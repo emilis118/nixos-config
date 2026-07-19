@@ -397,6 +397,7 @@ with lib; let
     ++ optional cfg.gpu "gpu"
     ++ ["bluetooth" "failed-units"]
     ++ optional cfg.lhc "lhc"
+    ++ optional cfg.marketplace "marketplace"
     ++ ["wlan" "eth" "powermenu"]
   );
 in {
@@ -405,6 +406,7 @@ in {
     battery = mkEnableOption "battery module in polybar";
     gpu = mkEnableOption "nvidia GPU module in polybar";
     lhc = mkEnableOption "LHC Page 1 module in polybar";
+    marketplace = mkEnableOption "manual Outlook Marketplace check button in polybar";
   };
 
   config = {
@@ -568,6 +570,15 @@ in {
           interval = 3600;
           click-left = "${lhcView}";
           click-right = "${lhcWeb}";
+        };
+
+        # click runs the marketplace checker (from features/marketplace-notifications);
+        # new topics arrive as notifications, "No new topics" when there's nothing
+        "module/marketplace" = {
+          type = "custom/script";
+          exec = ''echo "%{F${yellow}}󰄐%{F-}"'';
+          interval = 3600;
+          click-left = "marketplace-check --notify-empty";
         };
 
         "module/powermenu" = {

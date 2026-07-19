@@ -15,13 +15,15 @@
     # ./features/bash_ct.nix
     ./features/flameshot.nix
     ./features/whatsapp.nix
+    ./features/marketplace-notifications
+    ./features/thunderbird.nix
   ];
 
   xsession = {
     windowManager.i3 = {
       config = {
         startup = [
-          {command = "i3-msg 'workspace $ws10; exec firefox -new-window outlook.office.com/mail/'";}
+          {command = "i3-msg 'workspace $ws10; exec thunderbird'";}
           {
             command = "xrandr --output HDMI-2 --primary --right-of DP-3";
             always = true;
@@ -55,6 +57,7 @@
 
         assign [class="Mattermost"] $ws9
         assign [class="whatsapp-electron"] $ws9
+        assign [class="thunderbird"] $ws10
         assign [class="Org.gnome.Nautilus"] $ws5
 
         for_window [title="LHC Page 1"] floating enable
@@ -64,6 +67,7 @@
 
   # off while the beam is down (LS3); flip when the LHC is back
   polybarModules.lhc = false;
+  polybarModules.marketplace = true;
 
   # CERN DFS (WebDAV) shortcut in the Thunar/GTK sidebar — same as the
   # davs:// link you used in Nautilus. gvfs prompts for your CERN
