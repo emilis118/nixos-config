@@ -20,7 +20,7 @@
       config = {
         startup = [
           {
-            command = "xrandr --output HDMI-0 --mode 1920x1080 --rate 180";
+            command = "xrandr --output DP-0 --mode 2560x1440 --rate 164.83";
             always = true;
           }
         ];
