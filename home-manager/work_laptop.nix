@@ -46,6 +46,8 @@
         assign [class="Mattermost"] $ws9
         assign [class="whatsapp-electron"] $ws9
         assign [class="Org.gnome.Nautilus"] $ws5
+        # remote desktops (rofi "remote" tab) land next to the local VMs
+        assign [class="org\.remmina\.Remmina"] $ws4
 
         for_window [title="LHC Page 1"] floating enable
 
