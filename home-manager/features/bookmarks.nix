@@ -38,6 +38,11 @@
     icon = "github";
   }
   {
+    name = "Grafana";
+    url = "https://monit-grafana.cern.ch/d/dflcgw011fy80a/rf-dry-cooling?orgId=171";
+    icon = "utilities-system-monitor";
+  }
+  {
     name = "YouTube";
     url = "https://www.youtube.com/feed/subscriptions";
     icon = "youtube";

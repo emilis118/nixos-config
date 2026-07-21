@@ -390,14 +390,15 @@ with lib; let
   '';
 
   modulesRight = concatStringsSep " " (
-    ["wallpaper" "volume"]
+    ["wallpaper"]
+    ++ optional cfg.marketplace "marketplace"
+    ++ ["volume"]
     ++ optional cfg.backlight "backlight"
     ++ optional cfg.battery "battery"
     ++ ["filesystem" "memory" "cpu"]
     ++ optional cfg.gpu "gpu"
     ++ ["bluetooth" "failed-units"]
     ++ optional cfg.lhc "lhc"
-    ++ optional cfg.marketplace "marketplace"
     ++ ["wlan" "eth" "powermenu"]
   );
 in {
