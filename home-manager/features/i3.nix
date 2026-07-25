@@ -93,7 +93,7 @@ in {
           names = ["pango:JetBrainsMono Nerd Font"];
           size = 13.0;
         };
-        # floating.modifier = "Mod1"
+        floating.modifier = "Mod1";
         keybindings = {
           # make like vim
           "${modifier}+h" = "focus left";
@@ -135,7 +135,9 @@ in {
           "${modifier}+v" = "split v";
           "${modifier}+f" = "fullscreen toggle";
 
-          "${modifier}+Space" = "floating toggle";
+          # keysym is lowercase "space" - "Space" doesn't exist and i3 drops
+          # the binding silently
+          "${modifier}+space" = "floating toggle";
 
           "${modifier}+1" = "workspace $ws1";
           "${modifier}+2" = "workspace $ws2";
@@ -183,6 +185,13 @@ in {
         };
         workspaceAutoBackAndForth = true;
       };
+
+      # Firefox exposes only the page title, so match on that. i3 re-runs
+      # for_window on title changes, so this also fires when an already-open
+      # window navigates to naruto-arena.site/ingame.
+      extraConfig = ''
+        for_window [title="^In-Game - Naruto Arena"] floating enable
+      '';
     };
   };
 

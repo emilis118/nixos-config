@@ -28,12 +28,12 @@
   # launch options are configured for the game in Steam (the gamescope +
   # mangohud wrapper - see below). i3 routes it to workspace 3 via the
   # `assign [class="cs2"]` rule in desktop.nix.
-  xdg.desktopEntries.cs2 = {
-    name = "Counter-Strike 2";
-    exec = "steam -applaunch 730";
-    icon = "steam";
-    categories = ["Game"];
-  };
+  # xdg.desktopEntries.cs2 = {
+  #   name = "Counter-Strike 2";
+  #   exec = "steam -applaunch 730";
+  #   icon = "steam";
+  #   categories = ["Game"];
+  # };
 
   # ---------------------------------------------------------------------------
   # ONE-TIME MANUAL STEP (Steam substitutes %command% at launch, so this can't
