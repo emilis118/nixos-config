@@ -2,6 +2,7 @@
   config,
   pkgs,
   lib,
+  osConfig,
   ...
 }:
 with lib; let
@@ -14,6 +15,7 @@ with lib; let
 
   yellow = "#F0C674";
   red = "#A54242";
+  green = "#8C9440";
   dim = "#707880";
 
   # The toggle scripts run in polybar tail mode: they loop, re-rendering
@@ -383,6 +385,77 @@ with lib; let
     done
   '';
 
+  # NordLynx state. The unit lives on the system bus, so this polls; `vpn`
+  # also touches the flag file on every up/down, which wakes the loop
+  # immediately so a click doesn't feel laggy.
+  vpnScript = pkgs.writeShellScript "polybar-vpn" ''
+    export PATH=${makeBinPath [pkgs.systemd pkgs.coreutils pkgs.inotify-tools]}:$PATH
+
+    STATE_FILE="/tmp/polybar_vpn_state"
+    [ -f "$STATE_FILE" ] || : >"$STATE_FILE"
+
+    render() {
+        if systemctl is-active --quiet wg-quick-nordlynx.service; then
+            echo "%{F${green}}󰦝%{F-}"
+        else
+            echo "%{F${dim}}󰦞%{F-}"
+        fi
+    }
+
+    render
+    while :; do
+        inotifywait -qq -t 5 -e close_write "$STATE_FILE" 2>/dev/null
+        render
+    done
+  '';
+
+  # Do not disturb. features/dnd.nix owns the switch; this just reflects and
+  # toggles it.
+  dndScript = pkgs.writeShellScript "polybar-dnd" ''
+    export PATH=${makeBinPath [pkgs.coreutils pkgs.inotify-tools]}:$PATH
+
+    STATE_FILE="${config.dnd.stateFile}"
+    [ -f "$STATE_FILE" ] || echo off >"$STATE_FILE"
+
+    render() {
+        if [ "$(cat "$STATE_FILE" 2>/dev/null)" = "on" ]; then
+            echo "%{F${red}}󰂛%{F-}"
+        else
+            echo "%{F${dim}}󰂚%{F-}"
+        fi
+    }
+
+    render
+    while :; do
+        inotifywait -qq -t 30 -e close_write "$STATE_FILE" 2>/dev/null
+        render
+    done
+  '';
+
+  # Left-click checks now, right-click turns the 5-minute poller off/on.
+  marketplaceScript = pkgs.writeShellScript "polybar-marketplace" ''
+    export PATH=${makeBinPath [pkgs.coreutils pkgs.inotify-tools]}:$PATH
+
+    FLAG="${config.xdg.stateHome}/marketplace-notifications/disabled"
+    mkdir -p "$(dirname "$FLAG")"
+
+    render() {
+        if [ -e "$FLAG" ]; then
+            echo "%{F${dim}}󰄰%{F-}"
+        else
+            echo "%{F${yellow}}󰄐%{F-}"
+        fi
+    }
+
+    render
+    while :; do
+        # watch the directory: the flag itself comes and goes, and
+        # inotifywait can't watch a path that doesn't exist yet
+        inotifywait -qq -t 30 -e create -e delete "$(dirname "$FLAG")" 2>/dev/null
+        render
+    done
+  '';
+
   # rofi-power-menu is spawned by rofi from PATH, hence the export
   powermenuScript = pkgs.writeShellScript "polybar-powermenu" ''
     export PATH=${config.home.profileDirectory}/bin:$PATH
@@ -392,6 +465,7 @@ with lib; let
   modulesRight = concatStringsSep " " (
     ["wallpaper"]
     ++ optional cfg.marketplace "marketplace"
+    ++ optional cfg.dnd "dnd"
     ++ ["volume"]
     ++ optional cfg.backlight "backlight"
     ++ optional cfg.battery "battery"
@@ -399,7 +473,9 @@ with lib; let
     ++ optional cfg.gpu "gpu"
     ++ ["bluetooth" "failed-units"]
     ++ optional cfg.lhc "lhc"
-    ++ ["wlan" "eth" "powermenu"]
+    ++ ["wlan" "eth"]
+    ++ optional cfg.vpn "vpn"
+    ++ ["powermenu"]
   );
 in {
   options.polybarModules = {
@@ -408,6 +484,10 @@ in {
     gpu = mkEnableOption "nvidia GPU module in polybar";
     lhc = mkEnableOption "LHC Page 1 module in polybar";
     marketplace = mkEnableOption "manual Outlook Marketplace check button in polybar";
+    # follows the host: turning on nordvpn gets you the bar module and the
+    # rofi entry without a second flag
+    vpn = mkEnableOption "NordLynx status/toggle in polybar" // {default = osConfig.nordvpn.enable;};
+    dnd = mkEnableOption "do-not-disturb toggle in polybar" // {default = config.dnd.enable;};
   };
 
   config = {
@@ -573,13 +653,34 @@ in {
           click-right = "${lhcWeb}";
         };
 
-        # click runs the marketplace checker (from features/marketplace-notifications);
-        # new topics arrive as notifications, "No new topics" when there's nothing
+        # left-click runs the marketplace checker (from
+        # features/marketplace-notifications); new topics arrive as
+        # notifications, "No new topics" when there's nothing.
+        # Right-click switches the 5-minute background poller off; the icon
+        # dims while it is off and the setting survives a reboot.
         "module/marketplace" = {
           type = "custom/script";
-          exec = ''echo "%{F${yellow}}󰄐%{F-}"'';
-          interval = 3600;
+          exec = "${marketplaceScript}";
+          tail = true;
           click-left = "marketplace-check --notify-empty";
+          click-right = "marketplace-toggle";
+        };
+
+        # left-click connects/disconnects, right-click opens the menu
+        # (status, pick a country, ...)
+        "module/vpn" = {
+          type = "custom/script";
+          exec = "${vpnScript}";
+          tail = true;
+          click-left = "vpn toggle";
+          click-right = "vpn-menu";
+        };
+
+        "module/dnd" = {
+          type = "custom/script";
+          exec = "${dndScript}";
+          tail = true;
+          click-left = "dnd toggle";
         };
 
         "module/powermenu" = {

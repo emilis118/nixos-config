@@ -3,6 +3,28 @@
     enable = true;
     settings = {
       window = {opacity = 0.8;};
+
+      # Selecting text puts it straight into the CLIPBOARD selection, not
+      # just X11's PRIMARY. That means no copy keystroke in the terminal at
+      # all — which is what stops the Ctrl+Shift+C reflex that opens
+      # Firefox's inspector everywhere else. Ctrl+Shift+C still works.
+      selection.save_to_clipboard = true;
+
+      keyboard.bindings = [
+        # The bindings every other toolkit uses for copy/paste, kept
+        # alongside alacritty's defaults so either hand position works.
+        # Ctrl+C can't be rebound here — it has to stay SIGINT.
+        {
+          key = "Insert";
+          mods = "Control";
+          action = "Copy";
+        }
+        {
+          key = "Insert";
+          mods = "Shift";
+          action = "Paste";
+        }
+      ];
       font = {
         size = 13.0;
         normal = {

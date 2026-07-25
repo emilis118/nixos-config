@@ -15,15 +15,6 @@
     ./../shared/optional/razer.nix
   ];
 
-  # bluetooth
-  hardware.bluetooth.enable = true;
-  hardware.bluetooth.powerOnBoot = true;
-
-  # Bootloader.
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-  boot.loader.grub.configurationLimit = 4;
-
   # Networking
   networking.hostName = "desktop";
 
@@ -41,6 +32,8 @@
     # package = config.boot.kernelPackages.nvidiaPackages.stable;
     package = config.boot.kernelPackages.nvidiaPackages.legacy_580;
   };
+
+  secrets.enable = true;
 
   # Persist the NVIDIA driver's compiled-shader cache. On NVIDIA these vars
   # govern the on-disk ISA cache for BOTH OpenGL and Vulkan. By default the

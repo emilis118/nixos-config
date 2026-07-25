@@ -1,9 +1,9 @@
-{pkgs, config, ...}:
-
 {
-    programs.lf = {
-        enable = true;    
-
-
-    };
+  pkgs,
+  config,
+  ...
+}: {
+  programs.lf = {
+    enable = true;
+  };
 }

@@ -1,6 +1,7 @@
-{pkgs, ...}: let
-  wallpapers = import ../../../dotfiles/wallpaper {inherit pkgs;};
-in {
+{pkgs, ...}: {
+  # The i3 session itself is configured per-user in
+  # home-manager/features/i3.nix; this is only the system side (session
+  # registration + display manager).
   services.xserver.windowManager.i3.enable = true;
   services.displayManager.defaultSession = "none+i3";
   services.displayManager.sddm.enable = true;
@@ -14,22 +15,6 @@ in {
       Numlock = "on";
     };
   };
-
-  # services.xserver.windowManager.i3 = {
-  #   configFile = ./../../../dotfiles/i3/config;
-  #   extraPackages = with pkgs; [
-  #     i3status
-  #     i3blocks
-  #     i3lock
-  #     feh
-  #     (polybar.override {
-  #       i3Support = true;
-  #       pulseSupport = true; # if needed for volume
-  #     })
-  #   ];
-  #   # extraSessionCommands = "exec_always --no-startup-id ${wallpapers}/bin/random-wallpaper ${wallpapers}/share/wallpapers";
-  #   # extraConfig = "exec_always --no-startup-id ${wallpapers}/bin/random-wallpaper ${wallpapers}/share/wallpapers";
-  # };
 
   environment.systemPackages = [
     (pkgs.writeShellScriptBin

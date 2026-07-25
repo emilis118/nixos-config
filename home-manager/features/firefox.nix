@@ -6,6 +6,15 @@
   ...
 }: let
   bookmarks = import ./bookmarks.nix;
+
+  # Ctrl+Shift+C in Firefox is "pick an element", not copy — there is no
+  # pref that rebinds just that key, so the only lever is switching devtools
+  # off wholesale (which also takes F12 and Ctrl+Shift+I with it).
+  # Set this to true if the inspector popping up is worse than losing them.
+  # Either way, plain Ctrl+C copies in Firefox; only the terminal wants the
+  # Shift, and features/cli/alacritty.nix now copies on selection so you
+  # rarely need to press it there at all.
+  disableDevtools = false;
 in {
   programs.firefox.enable = true;
   # keep the pre-26.05 profile location; existing profiles live in ~/.mozilla
@@ -43,6 +52,8 @@ in {
       })
       bookmarks;
     DisplayBookmarksToolbar = "always";
+
+    DisableDeveloperTools = disableDevtools;
 
     DisableTelemetry = true;
     DisableFirefoxStudies = true;

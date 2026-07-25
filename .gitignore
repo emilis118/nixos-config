@@ -3,3 +3,12 @@ docs/
 # nix build output symlinks
 result
 result-*
+
+# personal bootstrap checklist, deliberately not shared
+SOPS-SETUP.md
+
+# age private keys must never end up here — the real ones live in
+# ~/.config/sops/age/keys.txt and /var/lib/sops-nix/key.txt.
+# (secrets/*.yaml are sops-encrypted and *are* meant to be committed.)
+*.agekey
+keys.txt

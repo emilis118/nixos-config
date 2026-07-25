@@ -1,112 +1,416 @@
-{pkgs, ...}: {
-  programs.neovim = {
-    enable = true;
-    # alias
-    viAlias = true;
-    vimAlias = true;
-    vimdiffAlias = true;
-    defaultEditor = true;
-    # no python/ruby remote plugins in use; adopt the new (26.05) defaults
-    withPython3 = false;
-    withRuby = false;
-    initLua = ''
-      ${builtins.readFile ./../../../dotfiles/nvim/lua/emilis/remap.lua}
-      ${builtins.readFile ./../../../dotfiles/nvim/lua/emilis/set.lua}
-    '';
-    extraPackages = with pkgs; [
-      nodejs # for some LSP servers
-      python3 # for python
-      pyright
-      lua-language-server # lua LSP
-      rust-analyzer # for rust LSP
-      clang-tools # for c/c++
-      nixd # nix lsp
-      alejandra # nix formatter
-      marksman # markdown LSP
-      python314Packages.autopep8
-      # for neovim
-      xclip
-      ripgrep
-      fd
-      gcc # for treesitter
-    ];
+{
+  pkgs,
+  inputs,
+  ...
+}: let
+  # The whole neovim setup, in nix. This replaced the older
+  # programs.neovim + readFile dotfiles/nvim/*.lua arrangement, so the lua
+  # lives here and there is nothing to keep in sync outside the flake.
+  nvim = inputs.nixvim.legacyPackages.${pkgs.stdenv.hostPlatform.system}.makeNixvimWithModule {
+    inherit pkgs;
+    module = {
+      # lua/emilis/set.lua
+      opts = {
+        nu = true;
+        relativenumber = true;
 
-    plugins = with pkgs.vimPlugins; [
-      # regular:
-      # config-name
-      # or
-      # with config:
-      # {plugin = config-name; config = ""; type = "lua";}
+        tabstop = 4;
+        softtabstop = 4;
+        shiftwidth = 4;
+        expandtab = true;
 
-      {
-        plugin = catppuccin-nvim;
-        type = "lua";
-        config = "vim.cmd('colorscheme catppuccin')";
-      }
-      # LSP
-      {
-        plugin = nvim-lspconfig;
-        type = "lua";
-        config = builtins.readFile ./../../../dotfiles/nvim/after/plugin/lsp.lua;
-      }
-      nvim-cmp
-      cmp-nvim-lsp
-      conform-nvim
-      # mason-nvim  # idk if use it or not
-      # mason-lspconfig-nvim
-      transparent-nvim
+        smartindent = true;
 
-      # harpoon requirements:
-      plenary-nvim
-      {
-        plugin = telescope-nvim;
-        type = "lua";
-        config = builtins.readFile ./../../../dotfiles/nvim/after/plugin/telescope.lua;
-      }
-      {
-        plugin = harpoon2;
-        type = "lua";
-        config = builtins.readFile ./../../../dotfiles/nvim/after/plugin/harpoon.lua;
-      }
+        wrap = false;
 
-      (nvim-treesitter.withPlugins (p: [
-        p.tree-sitter-nix
-        p.tree-sitter-vim
-        p.tree-sitter-bash
-        p.tree-sitter-lua
-        p.tree-sitter-python
-        p.tree-sitter-json
-        p.tree-sitter-latex
-        # add others later
-      ]))
+        swapfile = false;
+        backup = false;
+        undodir.__raw = ''os.getenv("HOME") .. "/.vim/undodir"'';
+        undofile = true;
 
-      # Latex
-      {
-        plugin = vimtex;
-        type = "lua";
-        config = ''          vim.g.vimtex_view_method = "zathura"
-                  vim.g.vimtex_compiler_method = "tectonic"'';
-      }
-      texpresso-vim
-    ];
+        hlsearch = false;
+        incsearch = true;
+
+        termguicolors = true;
+
+        scrolloff = 8;
+        signcolumn = "yes";
+
+        updatetime = 50;
+      };
+      extraConfigLua = ''
+        vim.opt.isfname:append("@-@")
+      '';
+
+      globals.mapleader = " ";
+
+      # lua/emilis/remap.lua + the plugin keymaps from after/plugin/*.lua
+      keymaps = [
+        {
+          mode = "n";
+          key = "<leader>pv";
+          action.__raw = "vim.cmd.Ex";
+        }
+
+        # judina pazymeta teksta aukstyn zemyn, imeta i if blocks
+        {
+          mode = "v";
+          key = "J";
+          action = ":m '>+1<CR>gv=gv";
+        }
+        {
+          mode = "v";
+          key = "K";
+          action = ":m '<-2<CR>gv=gv";
+        }
+
+        # kai perkeli eilute aukstyn lieka cursor vietoj
+        {
+          mode = "n";
+          key = "J";
+          action = "mzJ`z";
+        }
+        # half page jumps sucentruoja
+        {
+          mode = "n";
+          key = "<C-d>";
+          action = "<C-d>zz";
+        }
+        {
+          mode = "n";
+          key = "<C-u>";
+          action = "<C-u>zz";
+        }
+        # kai searchini ir sokineji padaro vaizda viduryje
+        {
+          mode = "n";
+          key = "n";
+          action = "nzzzv";
+        }
+        {
+          mode = "n";
+          key = "N";
+          action = "Nzzzv";
+        }
+
+        # greatest remap ever
+        # nukopijuota teksta paste ant pazymeto teksto ir islaiko clipboarda
+        {
+          mode = "x";
+          key = "<leader>p";
+          action = ''"_dP'';
+        }
+
+        # i system clipboarda nukopijuoja, istraukia is Vim
+        {
+          mode = ["n" "v"];
+          key = "<leader>y";
+          action = ''"+y'';
+        }
+        {
+          mode = "n";
+          key = "<leader>Y";
+          action = ''"+Y'';
+        }
+
+        {
+          mode = ["n" "v"];
+          key = "<leader>d";
+          action = ''"_d'';
+        }
+
+        {
+          mode = "i";
+          key = "<C-c>";
+          action = "<Esc>";
+        }
+
+        {
+          mode = "n";
+          key = "Q";
+          action = "<nop>";
+        }
+        {
+          mode = "n";
+          key = "<C-f>";
+          action = "<cmd>silent !tmux neww tmux-sessionizer<CR>";
+        }
+
+        {
+          mode = "n";
+          key = "<C-k>";
+          action = "<cmd>cnext<CR>zz";
+        }
+        {
+          mode = "n";
+          key = "<C-j>";
+          action = "<cmd>cprev<CR>zz";
+        }
+        {
+          mode = "n";
+          key = "<leader>k";
+          action = "<cmd>lnext<CR>zz";
+        }
+        {
+          mode = "n";
+          key = "<leader>j";
+          action = "<cmd>lprev<CR>zz";
+        }
+
+        {
+          mode = "n";
+          key = "<leader>s";
+          action = '':%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>'';
+        }
+        {
+          mode = "n";
+          key = "<leader>x";
+          action = "<cmd>!chmod +x %<CR>";
+          options.silent = true;
+        }
+
+        {
+          mode = "n";
+          key = "<leader>mr";
+          action = "<cmd>CellularAutomaton make_it_rain<CR>";
+        }
+
+        {
+          mode = "n";
+          key = "<leader><leader>";
+          action.__raw = ''
+            function()
+                vim.cmd("so")
+            end
+          '';
+        }
+
+        # after/plugin/lsp.lua
+        {
+          mode = "n";
+          key = "gd";
+          action.__raw = "vim.lsp.buf.definition";
+          options.desc = "Go to Definition";
+        }
+        {
+          mode = "n";
+          key = "K";
+          action.__raw = "vim.lsp.buf.hover";
+          options.desc = "Hover Documentation";
+        }
+        {
+          mode = "n";
+          key = "<leader>rn";
+          action.__raw = "vim.lsp.buf.rename";
+          options.desc = "Rename Symbol";
+        }
+        {
+          mode = "n";
+          key = "<leader>ca";
+          action.__raw = "vim.lsp.buf.code_action";
+          options.desc = "Code Action";
+        }
+        {
+          mode = "n";
+          key = "gr";
+          action.__raw = "require('telescope.builtin').lsp_references";
+        }
+        {
+          mode = "n";
+          key = "<leader>f";
+          action.__raw = ''
+            function()
+              require("conform").format()
+            end
+          '';
+          options.desc = "Format file";
+        }
+
+        # after/plugin/telescope.lua
+        {
+          mode = "n";
+          key = "<leader>pf";
+          action.__raw = "require('telescope.builtin').find_files";
+        }
+        {
+          mode = "n";
+          key = "<C-p>";
+          action.__raw = "require('telescope.builtin').git_files";
+        }
+        {
+          mode = "n";
+          key = "<leader>ps";
+          action.__raw = ''
+            function()
+                require('telescope.builtin').grep_string({ search = vim.fn.input("Grep > ")})
+            end
+          '';
+        }
+
+        # after/plugin/harpoon.lua
+        {
+          mode = "n";
+          key = "<leader>a";
+          action.__raw = ''function() require("harpoon"):list():add() end'';
+        }
+        {
+          mode = "n";
+          key = "<C-e>";
+          action.__raw = ''function() require("harpoon").ui:toggle_quick_menu(require("harpoon"):list()) end'';
+        }
+        {
+          mode = "n";
+          key = "<C-h>";
+          action.__raw = ''function() require("harpoon"):list():select(1) end'';
+        }
+        {
+          mode = "n";
+          key = "<C-t>";
+          action.__raw = ''function() require("harpoon"):list():select(2) end'';
+        }
+        {
+          mode = "n";
+          key = "<C-n>";
+          action.__raw = ''function() require("harpoon"):list():select(3) end'';
+        }
+        {
+          mode = "n";
+          key = "<C-s>";
+          action.__raw = ''function() require("harpoon"):list():select(4) end'';
+        }
+        # Toggle previous & next buffers stored within Harpoon list
+        {
+          mode = "n";
+          key = "<M-.>";
+          action.__raw = ''function() require("harpoon"):list():prev() end'';
+        }
+        {
+          mode = "n";
+          key = "<M-,>";
+          action.__raw = ''function() require("harpoon"):list():next() end'';
+        }
+      ];
+
+      colorschemes.catppuccin.enable = true;
+
+      plugins = {
+        transparent.enable = true;
+
+        # LSP servers as in after/plugin/lsp.lua; nixvim wires the
+        # cmp_nvim_lsp capabilities itself when cmp is enabled
+        lsp = {
+          enable = true;
+          servers = {
+            lua_ls.enable = true;
+            clangd.enable = true;
+            rust_analyzer = {
+              enable = true;
+              installCargo = false;
+              installRustc = false;
+            };
+            pyright.enable = true;
+            nixd.enable = true;
+            marksman.enable = true;
+          };
+        };
+
+        cmp = {
+          enable = true;
+          settings = {
+            sources = [{name = "nvim_lsp";}];
+            mapping = {
+              "<Tab>" = "cmp.mapping.select_next_item()";
+              "<S-Tab>" = "cmp.mapping.select_prev_item()";
+              "<CR>" = "cmp.mapping.confirm({ select = true })";
+            };
+          };
+        };
+
+        conform-nvim = {
+          enable = true;
+          settings = {
+            formatters_by_ft = {
+              nix = ["alejandra"];
+              python3 = ["autopep8"];
+            };
+            format_on_save = {
+              timeout_ms = 1000;
+            };
+          };
+        };
+
+        telescope.enable = true;
+        # telescope pulls this in anyway; explicit to silence the
+        # nixvim deprecation warning about implicit enabling
+        web-devicons.enable = true;
+        harpoon.enable = true;
+
+        treesitter = {
+          enable = true;
+          # same grammars as nvim-treesitter.withPlugins in neovim.nix
+          grammarPackages = with pkgs.vimPlugins.nvim-treesitter.builtGrammars; [
+            nix
+            vim
+            bash
+            lua
+            python
+            json
+            latex
+          ];
+        };
+
+        # Latex
+        vimtex = {
+          enable = true;
+          # tectonic instead of texlive, like the main setup
+          texlivePackage = null;
+          settings = {
+            view_method = "zathura";
+            compiler_method = "tectonic";
+          };
+        };
+      };
+
+      extraPlugins = [pkgs.vimPlugins.texpresso-vim];
+
+      extraPackages = with pkgs; [
+        nodejs # for some LSP servers
+        python3 # for python
+        alejandra # nix formatter
+        python314Packages.autopep8
+        # for neovim
+        xclip
+        ripgrep
+        fd
+        gcc # for treesitter
+      ];
+    };
   };
-
-  # packages to have
+in {
   home.packages = with pkgs; [
-    # nixy's neovim (github:anotherhadi/nixy) under a separate name,
-    # so it doesn't touch the main nvim setup above
+    nvim
+
+    # vi/vim/vimdiff aliases, as programs.neovim's viAlias/vimAlias/
+    # vimdiffAlias used to provide
+    (runCommand "nvim-aliases" {} ''
+      mkdir -p $out/bin
+      ln -s ${nvim}/bin/nvim $out/bin/vi
+      ln -s ${nvim}/bin/nvim $out/bin/vim
+    '')
+    (writeShellScriptBin "vimdiff" ''exec ${nvim}/bin/nvim -d "$@"'')
+
+    # nixy's neovim (github:anotherhadi/nixy) under a separate name, as a
+    # second opinion — it doesn't touch the setup above
     (runCommand "nnvim" {} ''
       mkdir -p $out/bin
       ln -s ${nixy-nvim}/bin/nvim $out/bin/nnvim
     '')
 
-    python3 # to actually run it
+    # nixvim wraps its own python3 for the plugins; this is the plain
+    # interpreter on PATH, as the previous programs.neovim setup provided
+    python3
 
-    # for PDF
+    # PDF viewer for vimtex (view_method = "zathura")
     zathura
-    # for latex
-    # texpresso
-    # tectonic
-    # texlive.combined.scheme-full
   ];
 }

@@ -18,6 +18,9 @@
     nixy.flake = false;
     nixvim.url = "github:nix-community/nixvim/nixos-26.05";
     nixvim.inputs.nixpkgs.follows = "nixpkgs";
+    # age-encrypted secrets checked into this repo; see SOPS-SETUP.md
+    sops-nix.url = "github:Mic92/sops-nix";
+    sops-nix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = {
@@ -29,6 +32,7 @@
   } @ inputs: let
     username = "emilis";
     system = "x86_64-linux";
+    pkgsFor = nixpkgs.legacyPackages.${system};
     # allowUnfree and hostPlatform are set inside the host configs
     # (hosts/shared/global/base_config.nix and hardware-configuration.nix).
     overlaysModule = {
@@ -61,69 +65,54 @@
         })
       ];
     };
+    # Every host is put together the same way: its own configuration.nix,
+    # the overlays above, and home-manager wired to the matching profile in
+    # ./home-manager. `name` picks both paths, so adding a host is one line
+    # plus the two files.
+    mkHost = name:
+      nixpkgs.lib.nixosSystem {
+        modules = [
+          ./hosts/${name}/configuration.nix
+          overlaysModule
+          inputs.sops-nix.nixosModules.sops
+          home-manager.nixosModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = false;
+            home-manager.extraSpecialArgs = {inherit inputs;};
+            home-manager.users.${username} = import ./home-manager/${name}.nix;
+          }
+        ];
+        # hostName is the *flake* name (desktop, work_pc, ...), which is what
+        # the per-host secrets files and .sops.yaml rules are keyed on;
+        # networking.hostName is the machine's real name and differs at work.
+        specialArgs = {
+          inherit inputs username;
+          hostName = name;
+        };
+      };
+
+    hosts = ["desktop" "laptop" "work_pc" "work_laptop"];
   in {
-    nixosConfigurations = {
-      # Main desktop
-      desktop = nixpkgs.lib.nixosSystem {
-        modules = [
-          ./hosts/desktop/configuration.nix
-          overlaysModule
-          home-manager.nixosModules.home-manager
-          {
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = false;
-            home-manager.extraSpecialArgs = {inherit inputs;};
-            home-manager.users."emilis" = import ./home-manager/desktop.nix;
-          }
-        ];
-        specialArgs = {inherit inputs username claude-code;};
-      };
+    nixosConfigurations = nixpkgs.lib.genAttrs hosts mkHost;
 
-      # laptop
-      laptop = nixpkgs.lib.nixosSystem {
-        modules = [
-          ./hosts/laptop/configuration.nix
-          overlaysModule
-          home-manager.nixosModules.home-manager
-          {
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = false;
-            home-manager.extraSpecialArgs = {inherit inputs;};
-            home-manager.users."emilis" = import ./home-manager/laptop.nix;
-          }
-        ];
-        specialArgs = {inherit inputs username claude-code;};
-      };
+    # `nix fmt` formats the whole tree with the same formatter the neovim
+    # setup uses for nix buffers.
+    formatter.${system} = pkgsFor.alejandra;
 
-      work_pc = nixpkgs.lib.nixosSystem {
-        modules = [
-          ./hosts/work_pc/configuration.nix
-          overlaysModule
-          home-manager.nixosModules.home-manager
-          {
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = false;
-            home-manager.extraSpecialArgs = {inherit inputs;};
-            home-manager.users."emilis" = import ./home-manager/work_pc.nix;
-          }
-        ];
-        specialArgs = {inherit inputs username claude-code;};
+    # `nix flake check` evaluates every host and verifies formatting, which
+    # catches option renames and typos without a rebuild.
+    checks.${system} =
+      nixpkgs.lib.genAttrs hosts
+      (name: self.nixosConfigurations.${name}.config.system.build.toplevel)
+      // {
+        formatting =
+          pkgsFor.runCommand "check-formatting" {
+            nativeBuildInputs = [pkgsFor.alejandra];
+          } ''
+            alejandra --check ${./.}
+            touch $out
+          '';
       };
-
-      work_laptop = nixpkgs.lib.nixosSystem {
-        modules = [
-          ./hosts/work_laptop/configuration.nix
-          overlaysModule
-          home-manager.nixosModules.home-manager
-          {
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = false;
-            home-manager.extraSpecialArgs = {inherit inputs;};
-            home-manager.users."emilis" = import ./home-manager/work_laptop.nix;
-          }
-        ];
-        specialArgs = {inherit inputs username claude-code;};
-      };
-    };
   };
 }

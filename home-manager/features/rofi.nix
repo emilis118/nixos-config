@@ -2,6 +2,7 @@
   pkgs,
   lib,
   config,
+  osConfig,
   ...
 }: let
   cfg = config.rofiModes;
@@ -67,6 +68,12 @@
 in {
   options.rofiModes = {
     remote = lib.mkEnableOption "remmina remote-desktop tab in rofi";
+    # the script itself lives in features/passwords.nix, which sets this
+    passwords = lib.mkEnableOption "password-store tab in rofi";
+    # likewise features/cheatsheet
+    cheat = lib.mkEnableOption "cheat-sheet tab in rofi";
+    # likewise features/clipboard.nix
+    clipboard = lib.mkEnableOption "clipboard-history tab in rofi";
   };
 
   config = {
@@ -92,6 +99,9 @@ in {
             "ssh"
           ]
           ++ lib.optional cfg.remote "remote:${rofi-remmina}/bin/rofi-remmina"
+          ++ lib.optional cfg.passwords "pw:rofi-passwords"
+          ++ lib.optional cfg.cheat "cheat:rofi-cheat"
+          ++ lib.optional cfg.clipboard "clip:rofi-clipboard"
           ++ [
             "calc"
             "power:rofi-power-menu"
@@ -113,6 +123,9 @@ in {
         display-window = "windows";
         display-ssh = "ssh";
         display-remote = "remote";
+        display-pw = "pw";
+        display-cheat = "cheat";
+        display-clip = "clip";
         display-calc = "calc";
         display-power = "power";
       };
@@ -165,6 +178,13 @@ in {
         name = "Todo list";
         exec = "todofi.sh";
         icon = "org.gnome.Todo";
+      };
+      # `vpn-menu` comes from hosts/shared/global/nordvpn.nix, so the entry
+      # only makes sense where that module is switched on.
+      vpn = lib.mkIf osConfig.nordvpn.enable {
+        name = "VPN (NordLynx)";
+        exec = "vpn-menu";
+        icon = "network-vpn";
       };
     };
   };

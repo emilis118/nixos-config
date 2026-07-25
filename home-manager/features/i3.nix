@@ -46,7 +46,7 @@ with lib; let
     rm -f "$flag"
   '';
 in {
-  imports = [./polybar.nix];
+  imports = [./polybar.nix ./i3-profile.nix];
 
   xsession = {
     enable = true;
@@ -169,7 +169,16 @@ in {
           "${modifier}+d" = "exec rofi -show drun";
           "${modifier}+c" = "exec rofi -show calc";
           "${modifier}+o" = "exec rofi -show bookmarks"; # o(pen) a web bookmark on ws1
+          # cheat sheets: shell operators, vim, zsh, nix, this config's own
+          # commands, plus your own notes (features/cheatsheet)
+          "${modifier}+slash" = "exec rofi -show cheat";
+          # clipboard history — pick anything copied since boot
+          # (features/clipboard.nix)
+          "${modifier}+p" = "exec --no-startup-id clip";
           "${modifier}+r" = "mode \"resize\"";
+          # do not disturb: silences notifications and blocks the social
+          # group where blocky runs (features/dnd.nix)
+          "${modifier}+Shift+n" = "exec --no-startup-id dnd toggle";
           "Print" = "exec flameshot gui";
         };
         # define modes / keybindings
