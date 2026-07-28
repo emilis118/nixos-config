@@ -15,5 +15,6 @@
 
   home.packages = with pkgs; [
     nh # nix helper
+    herdr # agent multiplexer (tmux for AI agents)
   ];
 }

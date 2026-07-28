@@ -10,6 +10,7 @@
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
     ./../shared/global # auto picks default.nix
+    ./../shared/optional/i3.nix # sddm + i3 session
     # ./../shared/optional/blocky.nix
     # lid/hibernate handling, tlp + thermald, autorandr, laptop diagnostics
     # tooling; also pulls in optional/performance.nix

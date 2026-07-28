@@ -26,6 +26,7 @@ keys:
   # - &laptop age1REPLACE_ME_WITH_THE_LAPTOP_PUBLIC_KEY
   # - &work_pc age1REPLACE_ME_WITH_THE_WORK_PC_PUBLIC_KEY
   # - &work_laptop age1REPLACE_ME_WITH_THE_WORK_LAPTOP_PUBLIC_KEY
+  # - &daq-laptop age1REPLACE_ME_WITH_THE_DAQ_LAPTOP_PUBLIC_KEY
 
 creation_rules:
   # Machine-readable secrets: ssh private keys, the NordLynx key. Readable by
@@ -36,7 +37,8 @@ creation_rules:
       - age:
           - *admin
           - *desktop
-          # add *laptop / *work_pc / *work_laptop here as you set them up,
+          # add *laptop / *work_pc / *work_laptop / *daq-laptop here as you
+          # set them up,
           # then run `sops updatekeys secrets/common.yaml` (step 5)
 
   # Your password store. Admin key only — no machine ever needs to decrypt
@@ -62,3 +64,6 @@ creation_rules:
   # - path_regex: secrets/hosts/work_laptop\.yaml$
   #   key_groups:
   #     - age: [*admin, *work_laptop]
+  # - path_regex: secrets/hosts/daq-laptop\.yaml$
+  #   key_groups:
+  #     - age: [*admin, *daq-laptop]

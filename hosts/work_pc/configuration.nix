@@ -10,6 +10,7 @@
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
     ./../shared/global # auto picks default.nix
+    ./../shared/optional/i3.nix # sddm + i3 session
     ./../shared/optional/cern-lab.nix # /mnt/lab sshfs + davfs2
   ];
 

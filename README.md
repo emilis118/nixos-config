@@ -1,6 +1,7 @@
 # nixos-config
 
-NixOS + home-manager flake for four machines, all x86_64, all running X11 + i3.
+NixOS + home-manager flake for five machines, all x86_64. Four of them are
+mine and run X11 + i3; `daq-laptop` is the lab's and runs Plasma on Wayland.
 
 | host          | hostname     | what it is                                    |
 | ------------- | ------------ | --------------------------------------------- |
@@ -8,6 +9,7 @@ NixOS + home-manager flake for four machines, all x86_64, all running X11 + i3.
 | `laptop`      | `laptop`     | personal laptop                               |
 | `work_pc`     | `pcte276928` | CERN desktop, two monitors, `/mnt/lab` sshfs  |
 | `work_laptop` | `lapte277203`| CERN laptop, fingerprint reader, `/mnt/lab`   |
+| `daq-laptop`  | `lapte234119`| cryo lab DAQ laptop, KDE, shared, reachable remotely |
 
 ## Rebuilding
 
@@ -22,7 +24,7 @@ sudo nixos-rebuild switch --flake .#<host>
 Check a change without applying it:
 
 ```sh
-nix flake check          # evaluates all four hosts + checks formatting
+nix flake check          # evaluates every host + checks formatting
 nix fmt                  # alejandra over the tree
 sudo nixos-rebuild build --flake .#<host>
 ```
@@ -34,11 +36,13 @@ flake.nix                     inputs, overlays, mkHost (one line per host)
 hosts/
   <host>/configuration.nix    only what is unique to that machine
   <host>/hardware-configuration.nix
-  shared/global/              imported by every host (boot, nix, locale, fonts, zsh, i3, thunar)
-  shared/optional/            opt-in per host (steam, razer, blocky, laptop, cern-lab, performance)
-  shared/users/emilis/        the user account
+  shared/global/              imported by every host (boot, nix, locale, fonts, zsh)
+  shared/optional/            opt-in per host (i3, kde, steam, razer, blocky,
+                              laptop, cern-lab, performance, remote-access)
+  shared/users/<user>/        the accounts (emilis everywhere, cryolab on daq-laptop)
 home-manager/
   <host>.nix                  per-host home profile; mostly toggles + startup commands
+  <host>-<user>.nix           second profile on a host that isn't only mine
   global/                     imported by every profile
   features/                   one file per program/feature
   features/cli/               shell-side features (zsh, neovim, tmux, git, ...)
@@ -48,7 +52,9 @@ dotfiles/
 ```
 
 Anything under `hosts/shared/optional/` or `home-manager/features/` is opt-in:
-a host gets it by importing it. Cross-cutting toggles use options instead of
+a host gets it by importing it. The desktop session is one of these choices —
+every host imports exactly one of `optional/i3.nix` (which brings thunar) or
+`optional/kde.nix`, since both set `services.displayManager.defaultSession`. Cross-cutting toggles use options instead of
 imports, so a profile reads as a list of switches:
 
 - `i3Profile.{personal,work,laptopKeys}` — workspace names, window
@@ -125,8 +131,33 @@ that file, there is no lua to keep in sync outside the flake. `nnvim` is
 [nixy](https://github.com/anotherhadi/nixy)'s nvf-based config, kept around as
 a second opinion.
 
+## daq-laptop
+
+The one machine here that other people use. `cryolab` is the lab's shared
+account — autologin into Plasma at boot, so the laptop comes back by itself
+after a power cut; my account is only there to administer it. The lid switch
+and every sleep target are disabled: it is supposed to keep running with the
+lid shut.
+
+Reaching it (`hosts/shared/optional/remote-access.nix`):
+
+- **ssh** — `ssh cryolab@lapte234119.local`. Passwords are accepted, because
+  not everyone who needs it will have put a key on it first. mdns (avahi) is
+  what makes the `.local` name work.
+- **RDP** — port 3389 is open, but KRDP itself is per-user: on the machine,
+  *System Settings → Remote Desktop*, switch it on and set a password there.
+  Then connect with remmina (`home-manager/features/remote.nix`) or any other
+  RDP client. This is why the host runs the Wayland session — KRDP does not
+  work under X11.
+
+There is no DAQ software in the config yet; when there is, it belongs in its
+own `hosts/shared/optional/` module.
+
 ## Adding a host
 
 1. `hosts/<name>/configuration.nix` + `hardware-configuration.nix`
 2. `home-manager/<name>.nix`
-3. add `"<name>"` to the `hosts` list in `flake.nix`
+3. add `<name> = {};` to the `hosts` attrset in `flake.nix` — or
+   `<name> = {extraHomeUsers = ["someone"];};` if the machine has other
+   users, which then need `hosts/shared/users/someone/` and
+   `home-manager/<name>-someone.nix`

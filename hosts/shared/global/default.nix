@@ -9,8 +9,9 @@
     # both are inert until a host sets secrets.enable / nordvpn.enable
     ./secrets.nix
     ./nordvpn.nix
-    ./../optional/i3.nix
-    ./../optional/thunar.nix
+    # the desktop session is *not* global: each host imports either
+    # optional/i3.nix (which brings thunar with it) or optional/kde.nix,
+    # because both claim services.displayManager.defaultSession.
     ./../users/emilis # home-manager
   ];
 }

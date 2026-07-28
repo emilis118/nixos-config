@@ -576,6 +576,146 @@
     example = "";
   }
 
+  # --- herdr (agent multiplexer; defaults from `herdr --default-config`) -----
+  {
+    cat = "herdr";
+    syntax = "herdr";
+    desc = "launch or attach the persistent session; prefix is ctrl+b, same as tmux";
+    example = "herdr";
+  }
+  {
+    cat = "herdr";
+    syntax = "herdr --session <name>";
+    desc = "named persistent session; session list / attach / stop / delete";
+    example = "herdr --session work";
+  }
+  {
+    cat = "herdr";
+    syntax = "prefix ? / s / q";
+    desc = "help overlay / settings / detach (server keeps running)";
+    example = "";
+  }
+  {
+    cat = "herdr";
+    syntax = "prefix c / n / p / 1..9";
+    desc = "new tab / next / previous / jump to tab number";
+    example = "";
+  }
+  {
+    cat = "herdr";
+    syntax = "prefix v / prefix -";
+    desc = "split pane vertically / horizontally";
+    example = "";
+  }
+  {
+    cat = "herdr";
+    syntax = "prefix h j k l";
+    desc = "focus the pane left / down / up / right";
+    example = "";
+  }
+  {
+    cat = "herdr";
+    syntax = "prefix tab";
+    desc = "cycle to the next pane; shift+tab for the previous one";
+    example = "";
+  }
+  {
+    cat = "herdr";
+    syntax = "prefix z / x / r";
+    desc = "zoom pane fullscreen / close pane / enter resize mode";
+    example = "";
+  }
+  {
+    cat = "herdr";
+    syntax = "prefix w / g";
+    desc = "workspace picker / goto (navigate mode: hjkl and arrows)";
+    example = "";
+  }
+  {
+    cat = "herdr";
+    syntax = "prefix shift+n / shift+g";
+    desc = "new workspace / new git worktree-backed workspace";
+    example = "";
+  }
+  {
+    cat = "herdr";
+    syntax = "prefix shift+w / shift+d";
+    desc = "rename / close the current workspace";
+    example = "";
+  }
+  {
+    cat = "herdr";
+    syntax = "prefix shift+t / shift+x";
+    desc = "rename / close the current tab";
+    example = "";
+  }
+  {
+    cat = "herdr";
+    syntax = "prefix b / e";
+    desc = "toggle the sidebar / open this pane's scrollback in $EDITOR";
+    example = "";
+  }
+  {
+    cat = "herdr";
+    syntax = "prefix shift+r";
+    desc = "reload config.toml in the running server, no restart";
+    example = "herdr server reload-config";
+  }
+  {
+    cat = "herdr";
+    syntax = "herdr agent list";
+    desc = "every agent pane and its lifecycle state";
+    example = "herdr agent list";
+  }
+  {
+    cat = "herdr";
+    syntax = "herdr agent prompt";
+    desc = "send a prompt into an agent pane from outside herdr";
+    example = "herdr agent prompt --id 1 'run the tests'";
+  }
+  {
+    cat = "herdr";
+    syntax = "herdr agent wait";
+    desc = "block until an agent reaches a state — the scripting primitive";
+    example = "herdr agent wait --id 1 --state idle";
+  }
+  {
+    cat = "herdr";
+    syntax = "herdr pane run / read";
+    desc = "run a command in a pane / read a pane's terminal output";
+    example = "herdr pane read --id 2";
+  }
+  {
+    cat = "herdr";
+    syntax = "herdr pane wait-output";
+    desc = "block until a pane prints something matching";
+    example = "herdr pane wait-output --id 2 --pattern 'done'";
+  }
+  {
+    cat = "herdr";
+    syntax = "herdr worktree create";
+    desc = "create a git worktree and open it as its own workspace";
+    example = "herdr worktree create --branch feat/x";
+  }
+  {
+    cat = "herdr";
+    syntax = "herdr --remote <ssh>";
+    desc = "attach to a herdr server on another box over SSH";
+    example = "herdr --remote lab";
+  }
+  {
+    cat = "herdr";
+    syntax = "herdr --skill";
+    desc = "print the agent instructions for driving herdr from a pane";
+    example = "herdr --skill";
+  }
+  {
+    cat = "herdr";
+    syntax = "herdr --default-config";
+    desc = "print the whole annotated default config.toml";
+    example = "herdr --default-config > ~/.config/herdr/config.toml";
+  }
+
   # --- i3 (this config's bindings; mod = Alt) -------------------------------
   {
     cat = "i3";

@@ -6,6 +6,10 @@
     home-manager.url = "github:nix-community/home-manager/release-26.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     claude-code.url = "github:sadjow/claude-code-nix";
+    # herdr: terminal multiplexer for AI agents; not in nixpkgs, so take the
+    # upstream flake's overlay (exposes `herdr`, used in features/cli).
+    herdr.url = "github:ogulcancelik/herdr";
+    herdr.inputs.nixpkgs.follows = "nixpkgs";
     # track ani-cli master directly so `nix flake update` always gets the
     # newest script instead of waiting for the nixpkgs version bump
     ani-cli-src.url = "github:pystardust/ani-cli";
@@ -38,6 +42,7 @@
     overlaysModule = {
       nixpkgs.overlays = [
         claude-code.overlays.default
+        inputs.herdr.overlays.default
         (_final: prev: {
           ani-cli = prev.ani-cli.overrideAttrs (_old: {
             version = "master-${inputs.ani-cli-src.shortRev or "dirty"}";
@@ -69,7 +74,11 @@
     # the overlays above, and home-manager wired to the matching profile in
     # ./home-manager. `name` picks both paths, so adding a host is one line
     # plus the two files.
-    mkHost = name:
+    #
+    # `extraHomeUsers` is for the machines that aren't only mine: each name in
+    # it gets its own profile at ./home-manager/<host>-<user>.nix. The account
+    # itself still has to exist (hosts/shared/users/<user>).
+    mkHost = name: {extraHomeUsers ? []}:
       nixpkgs.lib.nixosSystem {
         modules = [
           ./hosts/${name}/configuration.nix
@@ -80,7 +89,10 @@
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = false;
             home-manager.extraSpecialArgs = {inherit inputs;};
-            home-manager.users.${username} = import ./home-manager/${name}.nix;
+            home-manager.users =
+              {${username} = import ./home-manager/${name}.nix;}
+              // nixpkgs.lib.genAttrs extraHomeUsers
+              (user: import ./home-manager/${name}-${user}.nix);
           }
         ];
         # hostName is the *flake* name (desktop, work_pc, ...), which is what
@@ -92,9 +104,17 @@
         };
       };
 
-    hosts = ["desktop" "laptop" "work_pc" "work_laptop"];
+    hosts = {
+      desktop = {};
+      laptop = {};
+      work_pc = {};
+      work_laptop = {};
+      # shared lab machine: `cryolab` is the account the lab logs in with,
+      # mine is only there to administer it, so it needs a second profile.
+      daq-laptop = {extraHomeUsers = ["cryolab"];};
+    };
   in {
-    nixosConfigurations = nixpkgs.lib.genAttrs hosts mkHost;
+    nixosConfigurations = nixpkgs.lib.mapAttrs mkHost hosts;
 
     # `nix fmt` formats the whole tree with the same formatter the neovim
     # setup uses for nix buffers.
@@ -103,8 +123,9 @@
     # `nix flake check` evaluates every host and verifies formatting, which
     # catches option renames and typos without a rebuild.
     checks.${system} =
-      nixpkgs.lib.genAttrs hosts
-      (name: self.nixosConfigurations.${name}.config.system.build.toplevel)
+      nixpkgs.lib.mapAttrs
+      (name: _: self.nixosConfigurations.${name}.config.system.build.toplevel)
+      hosts
       // {
         formatting =
           pkgsFor.runCommand "check-formatting" {
