@@ -186,6 +186,113 @@ with lib; let
     done
   '';
 
+  # polybar's internal/battery can't swap labels on a click, and its
+  # %consumption% only reaches the discharging label, so this reads sysfs
+  # directly: power is reported while charging too, and left-click cycles
+  # percentage -> + wattage -> + time (to empty, or to full while charging).
+  batteryScript = pkgs.writeShellScript "polybar-battery" ''
+    export PATH=${makeBinPath [pkgs.coreutils pkgs.gawk pkgs.inotify-tools]}:$PATH
+
+    STATE_FILE="/tmp/polybar_battery_toggle"
+
+    [ -f "$STATE_FILE" ] || echo "1" > "$STATE_FILE"
+
+    if [ "$1" = "toggle" ]; then
+        case "$(cat "$STATE_FILE")" in
+            1) echo "2" > "$STATE_FILE" ;;
+            2) echo "3" > "$STATE_FILE" ;;
+            *) echo "1" > "$STATE_FILE" ;;
+        esac
+        exit 0
+    fi
+
+    BAT=$(for d in /sys/class/power_supply/BAT*; do
+        [ -e "$d/capacity" ] && echo "$d" && break
+    done)
+    [ -n "$BAT" ] || exit 0
+
+    # µW when the driver reports power, else µA × µV
+    watts() {
+        if [ -r "$BAT/power_now" ]; then
+            awk '{w = $1 / 1000000; printf "%.1f", (w < 0 ? -w : w)}' "$BAT/power_now"
+        elif [ -r "$BAT/current_now" ] && [ -r "$BAT/voltage_now" ]; then
+            awk 'NR==1 {c = $1} NR==2 {v = $1}
+                 END {w = c * v / 1000000000000; printf "%.1f", (w < 0 ? -w : w)}' \
+                "$BAT/current_now" "$BAT/voltage_now"
+        else
+            echo "0.0"
+        fi
+    }
+
+    # reservoir / rate in matching units: Wh over W, or Ah over A
+    remaining() {
+        if [ -r "$BAT/energy_now" ] && [ -r "$BAT/energy_full" ] && [ -r "$BAT/power_now" ]; then
+            now=$(cat "$BAT/energy_now"); full=$(cat "$BAT/energy_full"); rate=$(cat "$BAT/power_now")
+        elif [ -r "$BAT/charge_now" ] && [ -r "$BAT/charge_full" ] && [ -r "$BAT/current_now" ]; then
+            now=$(cat "$BAT/charge_now"); full=$(cat "$BAT/charge_full"); rate=$(cat "$BAT/current_now")
+        else
+            return 1
+        fi
+
+        [ "$1" = "Charging" ] && now=$((full - now))
+
+        awk -v n="$now" -v r="$rate" 'BEGIN {
+            if (r < 0) r = -r
+            if (r == 0 || n <= 0) exit 1
+            m = int(n / r * 60 + 0.5)
+            printf "%d:%02d", int(m / 60), m % 60
+        }'
+    }
+
+    icon() {
+        [ "$2" = "Charging" ] && { echo "󰂄"; return; }
+        case $(( ($1 + 5) / 10 )) in
+            0 | 1) echo "󰁺" ;;
+            2) echo "󰁻" ;;
+            3) echo "󰁼" ;;
+            4) echo "󰁽" ;;
+            5) echo "󰁾" ;;
+            6) echo "󰁿" ;;
+            7) echo "󰂀" ;;
+            8) echo "󰂁" ;;
+            9) echo "󰂂" ;;
+            *) echo "󰁹" ;;
+        esac
+    }
+
+    render() {
+        cap=$(cat "$BAT/capacity")
+        state=$(cat "$BAT/status")
+        view=$(cat "$STATE_FILE")
+
+        # "Not charging" is a plugged-in battery held at its charge limit
+        if [ "$state" = "Full" ] || { [ "$cap" -ge 99 ] && [ "$state" != "Discharging" ]; }; then
+            echo "%{F${yellow}}󰂄%{F-} Full"
+            return
+        fi
+
+        ico=$(icon "$cap" "$state")
+        if [ "$state" = "Discharging" ] && [ "$cap" -le 15 ]; then
+            out="%{F${red}}''${ico} ''${cap}%%{F-}"
+        else
+            out="%{F${yellow}}''${ico}%{F-} ''${cap}%"
+        fi
+
+        [ "$view" = "1" ] || out="$out $(watts) W"
+        if [ "$view" = "3" ]; then
+            time_left=$(remaining "$state") && out="$out $time_left"
+        fi
+
+        echo "$out"
+    }
+
+    render
+    while :; do
+        inotifywait -qq -t 5 -e close_write "$STATE_FILE" 2>/dev/null
+        render
+    done
+  '';
+
   ethScript = pkgs.writeShellScript "polybar-eth" ''
     export PATH=${makeBinPath [pkgs.coreutils pkgs.gawk pkgs.gnugrep pkgs.iproute2 pkgs.inotify-tools]}:$PATH
 
@@ -222,6 +329,60 @@ with lib; let
 
         # No wired connection: show nothing
         echo ""
+    }
+
+    render
+    while :; do
+        inotifywait -qq -t 1 -e close_write "$STATE_FILE" 2>/dev/null
+        render
+    done
+  '';
+
+  # Icon only by default, right-click reveals the network name — the eth
+  # module's hidable IP, for wifi. A custom script rather than
+  # internal/network because that one can't switch labels on a click.
+  wlanScript = pkgs.writeShellScript "polybar-wlan" ''
+    export PATH=${makeBinPath [pkgs.coreutils pkgs.gnugrep pkgs.networkmanager pkgs.inotify-tools]}:$PATH
+
+    STATE_FILE="/tmp/polybar_wlan_toggle"
+
+    if [ ! -f "$STATE_FILE" ]; then
+        echo "1" > "$STATE_FILE"
+    fi
+
+    if [ "$1" = "toggle" ]; then
+        if grep -q "1" "$STATE_FILE"; then
+            echo "2" > "$STATE_FILE"
+        else
+            echo "1" > "$STATE_FILE"
+        fi
+        exit 0
+    fi
+
+    render() {
+        found=""
+        for path in /sys/class/net/*/wireless; do
+            [ -e "$path" ] || continue
+            dev=$(basename "$(dirname "$path")")
+            found=1
+            if [ "$(cat "/sys/class/net/$dev/operstate")" = "up" ]; then
+                if grep -q "2" "$STATE_FILE"; then
+                    # only pay for nmcli when the name is on screen
+                    ssid=$(nmcli -t -f GENERAL.CONNECTION device show "$dev" 2>/dev/null | cut -d: -f2-)
+                    echo "%{F${yellow}}󰖩%{F-} ''${ssid}"
+                else
+                    echo "%{F${yellow}}󰖩%{F-}"
+                fi
+                return
+            fi
+        done
+
+        # radio present but down: dimmed off icon. No radio at all: nothing
+        if [ -n "$found" ]; then
+            echo "%{F${dim}}󰖪%{F-}"
+        else
+            echo ""
+        fi
     }
 
     render
@@ -716,21 +877,14 @@ in {
           tray-spacing = "16pt";
         };
 
-        network-base = {
-          type = "internal/network";
-          interval = 5;
-          format-connected = "<label-connected>";
-          format-disconnected = "<label-disconnected>";
-          label-disconnected = "%{F${yellow}}󰖪 %{F${dim}} disconnected";
-        };
-
+        # left-click opens the rofi network picker (networkmanager_dmenu),
+        # right-click toggles showing the network name
         "module/wlan" = {
-          "inherit" = "network-base";
-          interface-type = "wireless";
-          # icon is clickable: opens a rofi network picker (networkmanager_dmenu)
-          label-connected = "%{A1:networkmanager_dmenu:}%{F${yellow}}󰖩 %{F-} %essid%%{A}";
-          # when disconnected show only a dimmed wifi-off icon, still clickable
-          label-disconnected = "%{A1:networkmanager_dmenu:}%{F${dim}}󰖪 %{F-}%{A}";
+          type = "custom/script";
+          exec = "${wlanScript}";
+          tail = true;
+          click-left = "networkmanager_dmenu";
+          click-right = "${wlanScript} toggle";
         };
 
         "module/eth" = {
@@ -749,28 +903,12 @@ in {
           label = "%{F${yellow}}󰃞%{F-} %percentage%";
         };
 
+        # click cycles percentage / + wattage / + time remaining
         "module/battery" = {
-          type = "internal/battery";
-          full-at = 99;
-          low-at = 15;
-          battery = "BAT0";
-          adapter = "AC";
-          poll-interval = 5;
-          time-format = "%H:%M";
-          format-charging = "<animation-charging> <label-charging>";
-          format-discharging = "<ramp-capacity> <label-discharging>";
-          format-low = "<animation-low> <label-low>";
-          label-charging = "%percentage%%";
-          label-discharging = "%percentage%% %consumption% W";
-          label-full = "%{F${yellow}}󰂄%{F-} Full";
-          label-low = "%{F${red}}BATTERY LOW%{F-} %percentage%%";
-          ramp-capacity = ["" "" "" "" ""];
-          animation-charging = ["" "" "" "" ""];
-          animation-charging-framerate = 750;
-          animation-discharging = ["" "" "" "" ""];
-          animation-discharging-framerate = 500;
-          animation-low = ["!" ""];
-          animation-low-framerate = 200;
+          type = "custom/script";
+          exec = "${batteryScript}";
+          tail = true;
+          click-left = "${batteryScript} toggle";
         };
 
         settings = {
