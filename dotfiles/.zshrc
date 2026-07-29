@@ -9,6 +9,9 @@ fi
 alias ll="ls -al"
 alias ls='ls --color=auto'
 alias grep='grep --color=auto'
+# cat with syntax highlighting. Left as a separate alias rather than
+# shadowing cat, which still has to behave itself in pipes and heredocs.
+alias c='bat'
 PS1='[%n@%m %1~]%# '
 alias act="source ./env/bin/activate"
 alias shutdown="shutdown -h now"

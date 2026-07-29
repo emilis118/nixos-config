@@ -8,6 +8,8 @@
     ./yazi.nix
     ./tmux.nix
     ./zip.nix
+    ./bat.nix
+    ./glow.nix
     ./spreadsheet.nix
     ./slidev.nix
     ./claude.nix

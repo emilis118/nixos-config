@@ -19,7 +19,15 @@
   # Networking
   networking.hostName = "lapte234119";
 
-  hardware.graphics.enable = true;
+  # KRDP encodes the screen to H.264 before it sends anything, and reaches for
+  # VAAPI to do it. hardware.graphics.enable alone installs libva but no
+  # driver behind it, so the encoder finds nothing and the client gets a
+  # session that authenticates and then stays blank. iHD is the driver for
+  # this machine's 7th-gen (Kaby Lake, Gen9.5) integrated graphics.
+  hardware.graphics = {
+    enable = true;
+    extraPackages = with pkgs; [intel-media-driver];
+  };
   hardware.enableAllFirmware = true;
 
   # Log the lab straight into Plasma at boot, so the machine comes back on
@@ -79,6 +87,7 @@
     htop
     usbutils # lsusb, for finding an instrument that isn't showing up
     pciutils
+    libva-utils # vainfo, for checking the RDP screen encoder still has a driver
     minicom # talk to a serial instrument before there's software for it
   ];
 
