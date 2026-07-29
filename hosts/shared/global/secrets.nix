@@ -30,12 +30,21 @@ in {
 
     sshKeys = mkOption {
       type = types.listOf types.str;
-      default = [];
-      example = ["lab_pc" "id_ed25519"];
+      default = ["lab_pc" "gitlab" "github"];
+      example = ["lab_pc"];
       description = ''
         Names of ssh private keys to install into ~/.ssh. Each one must exist
-        as an `ssh/<name>` entry in secrets/common.yaml. The public half and
-        ~/.ssh/config are not managed here.
+        as an `ssh/<name>` entry in secrets/common.yaml. The public half is
+        not managed here.
+
+        Defaults to every key in that file: the machines are all mine, and a
+        key that only lives on one of them is a key I can't use from the
+        others. Override with a shorter list (or `[]`) on a host that
+        shouldn't hold all of them.
+
+        home-manager/features/cli/ssh.nix reads this list back out to decide
+        which ~/.ssh/config blocks to write, so a key added here starts being
+        offered to the right host without a second edit.
       '';
     };
   };

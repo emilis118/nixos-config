@@ -89,6 +89,10 @@
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = false;
             home-manager.extraSpecialArgs = {inherit inputs;};
+            # Move a hand-written file aside instead of aborting the whole
+            # activation when home-manager starts managing a path that
+            # already exists (~/.ssh/config was the first such case).
+            home-manager.backupFileExtension = "hm-bak";
             home-manager.users =
               {${username} = import ./home-manager/${name}.nix;}
               // nixpkgs.lib.genAttrs extraHomeUsers

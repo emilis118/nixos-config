@@ -26,6 +26,11 @@
   # hibernate image lives in the swap partition (hardware-configuration.nix)
   boot.resumeDevice = "/dev/disk/by-uuid/03305833-14ac-47ea-85c8-fd036c5b33a2";
 
+  # sops-nix. Installs every key in secrets/common.yaml (the `secrets.sshKeys`
+  # default), which includes the `lab_pc` one cern-lab.nix's /mnt/lab sshfs
+  # mount points at.
+  secrets.enable = true;
+
   # Fingerprint reader (enroll with `fprintd-enroll`). This was previously
   # enabled in the laptop's pre-flake /etc/nixos config and silently dropped
   # on the first flake rebuild. Adds fingerprint to sudo/login PAM stacks.

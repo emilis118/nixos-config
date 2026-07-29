@@ -1062,6 +1062,18 @@
     example = "lab";
   }
   {
+    cat = "ssh";
+    syntax = "ssh lab / ssh daq";
+    desc = "hosts from ~/.ssh/config: cryolab box (lab_pc key) / DAQ laptop (password)";
+    example = "ssh lab";
+  }
+  {
+    cat = "ssh";
+    syntax = "ssh -v host";
+    desc = "show which key ssh is actually offering when auth fails";
+    example = "ssh -v github.com";
+  }
+  {
     cat = "zsh";
     syntax = "tldr cmd";
     desc = "practical examples instead of a full man page";

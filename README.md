@@ -62,7 +62,10 @@ imports, so a profile reads as a list of switches:
 - `polybarModules.{gpu,battery,backlight,lhc,marketplace,vpn,dnd}` — which
   polybar modules a host shows (`home-manager/features/polybar.nix`)
 - `rofiModes.{remote,passwords}` — extra rofi tabs (`home-manager/features/rofi.nix`)
-- `secrets.enable` / `secrets.sshKeys` — sops-nix (`hosts/shared/global/secrets.nix`)
+- `secrets.enable` / `secrets.sshKeys` — sops-nix (`hosts/shared/global/secrets.nix`).
+  `sshKeys` defaults to every key in `secrets/common.yaml`, and
+  `home-manager/features/cli/ssh.nix` turns that list into the `~/.ssh/config`
+  blocks (`lab`, `github.com`, `gitlab.cern.ch`) that say which key goes where
 - `nordvpn.enable` + `endpoint`/`publicKey` — WireGuard VPN (`hosts/shared/global/nordvpn.nix`)
 
 ## Secrets
