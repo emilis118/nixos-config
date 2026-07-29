@@ -217,6 +217,11 @@ in {
     xss-lock.extraOptions = ["--transfer-sleep-lock"];
   };
 
+  # X11 compositor: what makes alacritty's window opacity (features/cli/
+  # alacritty.nix) actually do something.
+  services.picom.enable = true;
+  services.picom.backend = "glx";
+
   home.packages = with pkgs; [
     picom
     i3lock

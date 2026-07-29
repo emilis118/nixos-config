@@ -42,7 +42,8 @@
       };
     };
   };
-
-  services.picom.enable = true;
-  services.picom.backend = "glx";
+  # The 0.8 opacity above needs a compositor. On the i3 hosts that is picom,
+  # switched on in features/i3.nix — not here, because this file is also
+  # imported by the Plasma Wayland host, which composites on its own and has
+  # no X11 session for picom to attach to.
 }

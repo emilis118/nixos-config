@@ -2,7 +2,11 @@
 # is the account the lab uses (autologin, KDE), mine is only for admin. It is
 # meant to sit next to a setup with the lid shut and stay reachable, which is
 # most of what makes this host different from work_laptop.
-{pkgs, ...}: {
+{
+  lib,
+  pkgs,
+  ...
+}: {
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
@@ -25,10 +29,28 @@
     enable = true;
     user = "cryolab";
   };
-  # Autologin means nobody types a password at login, so kwallet can't be
-  # unlocked by PAM and Plasma will ask for it the first time something wants
-  # the wallet. Give the wallet an empty password when it offers to, or
-  # delete it — nothing here stores secrets in it.
+  # Autologin means nobody types a password at login, so kwallet could never
+  # be unlocked by PAM anyway, and Plasma would pop up a "create a wallet"
+  # dialog the first time something asked for it. Nothing here keeps secrets
+  # in a wallet, so switch the subsystem off: kwalletrc as a system-wide
+  # default (/etc/xdg is in XDG_CONFIG_DIRS), which is what kwalletd and every
+  # KWallet client check before doing anything, plus the two PAM modules
+  # plasma6.nix turns on unconditionally so nothing tries to unlock a wallet
+  # at login either.
+  #
+  # The packages themselves stay: plasma6.nix has kwallet, kwallet-pam and
+  # kwalletmanager in its *required* list, which environment.plasma6.
+  # excludePackages does not filter. Disabled, they are dead weight in the
+  # system profile, not a running daemon.
+  #
+  # Consequence: plasma-nm (wifi passwords) stores secrets in plain text under
+  # ~/.config instead — fine on this machine, would not be on a personal one.
+  environment.etc."xdg/kwalletrc".text = ''
+    [Wallet]
+    Enabled=false
+  '';
+  security.pam.services.login.kwallet.enable = lib.mkForce false;
+  security.pam.services.kde.kwallet.enable = lib.mkForce false;
 
   # shared/optional/laptop.nix is deliberately *not* imported. It suspends and
   # then hibernates on lid close, which on a machine that is supposed to keep
