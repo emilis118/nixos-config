@@ -25,7 +25,7 @@ keys:
   - &desktop age1h4079pgrsxjume5nseehtmqslmrq4yft9mprm3fsspyauqgcxqtqd9a0s8
   # - &laptop age1REPLACE_ME_WITH_THE_LAPTOP_PUBLIC_KEY
   - &work_laptop age15x60jwwegnk542nhvlvw2y5zagdr2ed47chx5qx772a2txnrtgjshwrn4e
-  # - &work_pc age1REPLACE_ME_WITH_THE_WORK_LAPTOP_PUBLIC_KEY
+  - &work_pc age1p97we57g5c5c7n63hny9adjnra3f2an604glhu3em3sfzxvyqgxqe26vhv
   # - &daq-laptop age1REPLACE_ME_WITH_THE_DAQ_LAPTOP_PUBLIC_KEY
 
 creation_rules:
@@ -38,6 +38,7 @@ creation_rules:
           - *admin
           - *desktop
           - *work_laptop
+          - *work_pc
           # add *laptop / *work_pc / *work_laptop / *daq-laptop here as you
           # set them up,
           # then run `sops updatekeys secrets/common.yaml` (step 5)
@@ -54,17 +55,17 @@ creation_rules:
   # sops.secrets entry at it (see the comment in secrets.nix).
   - path_regex: secrets/hosts/desktop\.yaml$
     key_groups:
-      - age: [*admin, *desktop, *work_laptop]
+      - age: [*admin, *desktop, *work_laptop, *work_pc]
   # Uncomment a block once you've added that machine's anchor above:
   # - path_regex: secrets/hosts/laptop\.yaml$
   #   key_groups:
   #     - age: [*admin, *laptop]
-  # - path_regex: secrets/hosts/work_pc\.yaml$
-  #   key_groups:
-  #     - age: [*admin, *work_pc]
-  # - path_regex: secrets/hosts/work_laptop\.yaml$
-  #   key_groups:
-  #     - age: [*admin, *work_laptop]
+  - path_regex: secrets/hosts/work_pc\.yaml$
+    key_groups:
+      - age: [*admin, *work_pc]
+  - path_regex: secrets/hosts/work_laptop\.yaml$
+    key_groups:
+      - age: [*admin, *work_laptop]
   # - path_regex: secrets/hosts/daq-laptop\.yaml$
   #   key_groups:
   #     - age: [*admin, *daq-laptop]

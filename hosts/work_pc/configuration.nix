@@ -17,6 +17,11 @@
   # Networking
   networking.hostName = "pcte276928";
 
+  # sops-nix. Installs every key in secrets/common.yaml (the `secrets.sshKeys`
+  # default), which includes the `lab_pc` one cern-lab.nix's /mnt/lab sshfs
+  # mount points at.
+  secrets.enable = true;
+
   # Enable OpenGL
   hardware.graphics.enable = true;
 
