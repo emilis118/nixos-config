@@ -22,6 +22,12 @@
   # mount points at.
   secrets.enable = true;
 
+  # NordLynx, available but never automatic: this is a full tunnel, so while
+  # it is up the /mnt/lab sshfs mount and anything else CERN-internal stops
+  # resolving. Bring it up deliberately with `vpn up`, and `vpn down` before
+  # touching the lab.
+  nordvpn.enable = true;
+
   # Enable OpenGL
   hardware.graphics.enable = true;
 

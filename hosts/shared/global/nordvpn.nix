@@ -135,14 +135,21 @@ in {
       '';
     };
 
+    # Defaults rather than per-host settings: every host uses the same exit
+    # node, so rotating it is one edit here instead of four. `nordvpn-pick`
+    # prints both lines — paste them over the defaults, or set them in a
+    # single host's configuration.nix to give that machine a different exit.
     endpoint = mkOption {
       type = types.str;
+      # fr1016.nordvpn.com  (France, load 16% when picked, 2026-07-29)
+      default = "185.81.125.23:51820";
       example = "185.216.34.114:51820";
       description = "Server IP:port. Get a current one with `nordvpn-pick`.";
     };
 
     publicKey = mkOption {
       type = types.str;
+      default = "VkrbtQHNdEeX8m71354tyzMvrkP14BNQM/aqiYpBbBk=";
       example = "zjIGh0Q1eIiVBFYpFyZFsWBWL7QcMZfRnA6nkQmLBnI=";
       description = "That server's WireGuard public key, also from `nordvpn-pick`.";
     };
@@ -184,6 +191,18 @@ in {
 
     # `nordvpn/private_key` in secrets/common.yaml. wg-quick reads the file at
     # start, so the key never appears in the store or in /etc.
+    #
+    # This is the *NordLynx* key, not the account access token — Nord's
+    # dashboard only hands out the token, and wg-quick can't use it. The token
+    # is kept alongside it as `nordvpn/access_token`; re-derive the key from it
+    # (after a token regeneration, say) with:
+    #
+    #   sops -d --extract '["nordvpn"]["access_token"]' secrets/common.yaml |
+    #     xargs -I{} curl -s -u token:{} \
+    #       https://api.nordvpn.com/v1/users/services/credentials |
+    #     jq -r .nordlynx_private_key
+    #
+    # then `sops set secrets/common.yaml '["nordvpn"]["private_key"]' '"<key>"'`.
     sops.secrets."nordvpn/private_key" = {
       mode = "0400"; # root-only; wg-quick runs as root
     };

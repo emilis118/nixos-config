@@ -31,6 +31,12 @@
   # mount points at.
   secrets.enable = true;
 
+  # NordLynx, available but never automatic: this is a full tunnel, so while
+  # it is up the /mnt/lab sshfs mount and anything else CERN-internal stops
+  # resolving. Bring it up deliberately with `vpn up`, and `vpn down` before
+  # touching the lab.
+  nordvpn.enable = true;
+
   # Fingerprint reader (enroll with `fprintd-enroll`). This was previously
   # enabled in the laptop's pre-flake /etc/nixos config and silently dropped
   # on the first flake rebuild. Adds fingerprint to sudo/login PAM stacks.

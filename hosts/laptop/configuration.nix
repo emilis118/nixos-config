@@ -24,5 +24,13 @@
   # hibernate image lives in the swap partition (hardware-configuration.nix)
   boot.resumeDevice = "/dev/disk/by-uuid/3ee88bae-d698-4c4c-830d-78c04bc11729";
 
+  # sops-nix. Installs every key in secrets/common.yaml (the `secrets.sshKeys`
+  # default) and the NordLynx private key below.
+  secrets.enable = true;
+
+  # NordLynx. Off at boot (nordvpn.autoStart stays false) — `vpn up`, the
+  # polybar shield, or mod+d → vpn-menu brings it up.
+  nordvpn.enable = true;
+
   system.stateVersion = "24.11"; # Did you read the comment?
 }
