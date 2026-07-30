@@ -26,7 +26,7 @@ keys:
   - &laptop age1eg9j3p49qsqzm5t3mry302tyk7hjvdg03h0k9n0eadu4cvegh98sp2vtrz
   - &work_laptop age15x60jwwegnk542nhvlvw2y5zagdr2ed47chx5qx772a2txnrtgjshwrn4e
   - &work_pc age1p97we57g5c5c7n63hny9adjnra3f2an604glhu3em3sfzxvyqgxqe26vhv
-  - &daq-laptop age19jn5n5egmpgwg4dpgys5jcptn9ntxfx45yece90y6kz3xvsx6cfqgu8mwp
+  - &daq-laptop age1eujfkrv94v8qq35y26h48kadmk8ksu84y3r73y49m0s599rwxv9qpcq864
 
 creation_rules:
   # Machine-readable secrets: ssh private keys, the NordLynx key. Readable by
