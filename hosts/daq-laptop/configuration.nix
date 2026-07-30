@@ -60,6 +60,8 @@
   security.pam.services.login.kwallet.enable = lib.mkForce false;
   security.pam.services.kde.kwallet.enable = lib.mkForce false;
 
+  secrets.enable = true;
+
   # shared/optional/laptop.nix is deliberately *not* imported. It suspends and
   # then hibernates on lid close, which on a machine that is supposed to keep
   # acquiring data with the lid shut (and stay reachable over ssh/RDP) is
