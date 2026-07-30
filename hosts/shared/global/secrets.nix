@@ -71,15 +71,34 @@ in {
       # ssh private keys, dropped straight into ~/.ssh with the right mode.
       # `ssh/lab_pc` is the key the /mnt/lab sshfs mount and the `lab` alias
       # already point at.
-      secrets = listToAttrs (map (name:
-        nameValuePair "ssh/${name}" {
-          owner = config.users.users.emilis.name;
-          inherit (config.users.users.emilis) group;
-          path = "${config.users.users.emilis.home}/.ssh/${name}";
-          mode = "0600";
-        })
-      cfg.sshKeys);
+      secrets =
+        listToAttrs (map (name:
+          nameValuePair "ssh/${name}" {
+            owner = config.users.users.emilis.name;
+            inherit (config.users.users.emilis) group;
+            path = "${config.users.users.emilis.home}/.ssh/${name}";
+            mode = "0600";
+          })
+        cfg.sshKeys)
+        // {
+          # Read by scripts running as either emilis or cryolab, so it is
+          # group-readable rather than owner-only like the ssh keys above.
+          # root owns it because nothing needs to write it.
+          "grafana/api_key" = {
+            owner = "root";
+            group = "lab-secrets";
+            mode = "0440";
+          };
+        };
     };
+
+    # The group that gates the shared secrets above. `cryolab` only exists on
+    # the DAQ laptop, so it joins from shared/users/cryolab/default.nix (only
+    # imported there) instead of being named here — referencing
+    # config.users.users.cryolab from this always-on module would fail to
+    # evaluate on every other host.
+    users.groups.lab-secrets = {};
+    users.users.emilis.extraGroups = ["lab-secrets"];
 
     # Host-specific secrets, if this machine ever needs any that the others
     # must not be able to read. Create secrets/hosts/<host>.yaml, add a

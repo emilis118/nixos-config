@@ -17,6 +17,9 @@
       "dialout"
       "video"
       "audio"
+      # reads the group-readable secrets in /run/secrets (see
+      # shared/global/secrets.nix), currently grafana/api_key
+      "lab-secrets"
     ];
   };
 }
