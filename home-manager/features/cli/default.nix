@@ -11,6 +11,7 @@
     ./zip.nix
     ./bat.nix
     ./glow.nix
+    ./mdb.nix
     ./spreadsheet.nix
     ./slidev.nix
     ./claude.nix

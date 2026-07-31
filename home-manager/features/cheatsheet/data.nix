@@ -545,6 +545,18 @@
   }
   {
     cat = "mine";
+    syntax = "md <file.md>";
+    desc = "render markdown in the terminal (glow, paged); bare md opens a TUI browser";
+    example = "md README.md";
+  }
+  {
+    cat = "mine";
+    syntax = "mdb <file.md>";
+    desc = "render markdown to self-contained HTML and open it in the browser";
+    example = "mdb README.md";
+  }
+  {
+    cat = "mine";
     syntax = "sops secrets/common.yaml";
     desc = "edit encrypted secrets in place";
     example = "sops secrets/passwords.yaml";
