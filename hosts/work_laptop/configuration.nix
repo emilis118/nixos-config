@@ -48,5 +48,10 @@
   security.pam.services.i3lock.fprintAuth = false;
   security.pam.services.i3lock-color.fprintAuth = false;
 
+  # Not worth putting the enrollment under sops: /var/lib/fprint holds only a
+  # binding to a print ID stored on the sensor chip, keyed by that chip's USB
+  # serial, so a backup restores nothing except on this exact laptop with
+  # this exact sensor - and goes stale the moment you re-enroll.
+
   system.stateVersion = "25.05"; # Did you read the comment?
 }

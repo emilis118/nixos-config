@@ -34,16 +34,27 @@ with lib; let
         done
     }
 
+    # Killing the watcher subshell orphans the fprintd-verify it is blocked
+    # in, and that orphan keeps the sensor claimed forever - after which
+    # every sudo/login gets "Device was already claimed" from fprintd and
+    # silently falls back to the password prompt. So take the child down
+    # too, and do it from a trap so an interrupted lock-screen still cleans
+    # up. Watcher first: killing verify on its own only makes the loop
+    # start another one.
+    cleanup() {
+        kill "$watcher" 2>/dev/null
+        pkill -x -u "$USER" fprintd-verify 2>/dev/null
+        rm -f "$flag"
+    }
+
     fprint_watch &
     watcher=$!
+    trap cleanup EXIT INT TERM
 
     # a locker killed by the fingerprint watcher exits non-zero; the flag
     # tells that apart from betterlockscreen failing to start
     ${pkgs.betterlockscreen}/bin/betterlockscreen -l dim \
         || { [ -e "$flag" ] || ${pkgs.i3lock}/bin/i3lock -n -c 000000; }
-
-    kill "$watcher" 2>/dev/null
-    rm -f "$flag"
   '';
 in {
   imports = [./polybar.nix ./i3-profile.nix];
