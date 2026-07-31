@@ -38,9 +38,14 @@ with lib; let
     # clipmenud is paused across the copy, otherwise the password would be
     # sitting in the clipboard history long after this cleared the clipboard
     # itself. Both calls are best-effort: clipmenu may not be running.
+    #
+    # xclip stays resident to own the selection, so its output has to be
+    # detached: in rofi script mode (the "pw" tab) rofi reads this script's
+    # stdout until EOF, and an xclip holding that pipe open freezes the whole
+    # rofi window until the clear below takes the selection away from it.
     clip() {
       clipctl disable >/dev/null 2>&1 || true
-      printf '%s' "$1" | xclip -selection clipboard
+      printf '%s' "$1" | xclip -selection clipboard >/dev/null 2>&1
       (
         # long enough for clipmenud to have skipped this change
         sleep 2
