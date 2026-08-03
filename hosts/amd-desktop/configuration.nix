@@ -67,14 +67,18 @@
     package = config.boot.kernelPackages.nvidiaPackages.legacy_580;
   };
 
+  # No sops on this machine: it has no age key in .sops.yaml yet, and turning
+  # this on before it does makes activation fail. Uncomment once SOPS-SETUP.md
+  # step 2 has been run here and the key is a recipient of secrets/common.yaml.
   # secrets.enable = true;
 
-  # NordLynx. Off at boot (nordvpn.autoStart stays false) — `vpn up`, the
-  # polybar shield, or mod+d → vpn-menu brings it up.
-  nordvpn.enable = true;
-  # blocky is this host's resolver (networking.nameservers = 127.0.0.1), so
-  # don't let wg-quick swap in Nord's DNS and bypass the blocklists.
-  nordvpn.dns = [];
+  # NordLynx stays off with it — nordvpn.nix asserts secrets.enable, because
+  # the WireGuard private key is read from sops. Re-enable both together:
+  #
+  #   nordvpn.enable = true;
+  #   # blocky is this host's resolver (networking.nameservers = 127.0.0.1), so
+  #   # don't let wg-quick swap in Nord's DNS and bypass the blocklists.
+  #   nordvpn.dns = [];
 
   # Persist the NVIDIA driver's compiled-shader cache. On NVIDIA these vars
   # govern the on-disk ISA cache for BOTH OpenGL and Vulkan. By default the

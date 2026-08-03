@@ -27,11 +27,12 @@ keys:
   - &work_laptop age15x60jwwegnk542nhvlvw2y5zagdr2ed47chx5qx772a2txnrtgjshwrn4e
   - &work_pc age1p97we57g5c5c7n63hny9adjnra3f2an604glhu3em3sfzxvyqgxqe26vhv
   - &daq-laptop age1eujfkrv94v8qq35y26h48kadmk8ksu84y3r73y49m0s599rwxv9qpcq864
-  # amd-desktop: no key yet. Once the machine exists, run SOPS-SETUP.md step 2
-  # on it, paste `age-keygen -y /var/lib/sops-nix/key.txt` here, uncomment this
-  # anchor and the two *amd-desktop references below, then
-  # `sops updatekeys secrets/common.yaml`. Until then its `secrets.enable`
-  # activation will fail, because it can't decrypt common.yaml.
+  # amd-desktop: no key, and `secrets.enable` is off there, so it needs none.
+  # If that changes, run SOPS-SETUP.md step 2 on it, paste
+  # `age-keygen -y /var/lib/sops-nix/key.txt` here, uncomment this anchor and
+  # the two *amd-desktop references below, then
+  # `sops updatekeys secrets/common.yaml` — flipping secrets.enable before all
+  # of that makes activation fail, since it can't decrypt common.yaml.
   # - &amd-desktop age1...
 
 creation_rules:
