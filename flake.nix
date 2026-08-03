@@ -111,9 +111,6 @@
     hosts = {
       desktop = {};
       amd-desktop = {};
-      # temporary: first-boot config for the amd-desktop machine, delete once
-      # that host has been switched to successfully.
-      amd-bootstrap = {};
       laptop = {};
       work_pc = {};
       work_laptop = {};

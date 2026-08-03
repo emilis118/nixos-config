@@ -6,9 +6,7 @@ mine and run X11 + i3; `daq-laptop` is the lab's and runs Plasma on Wayland.
 | host          | hostname     | what it is                                    |
 | ------------- | ------------ | --------------------------------------------- |
 | `desktop`     | `desktop`    | NVIDIA gaming desktop (Steam, CS2, blocky DNS) |
-| `amd-desktop` | `amd-desktop`| same as `desktop`, on a Ryzen 9 3900X + GTX 1070; core 10 (CPUs 10+22) isolated via `isolcpus` |
-| `amd-bootstrap` | `amd-bootstrap` | **temporary.** Boot + network + a tty on the `amd-desktop` machine, to switch to `amd-desktop` from. Shares its hardware scan; delete once that has worked |
-| `laptop`      | `laptop`     | personal laptop                               |
+| `amd-desktop` | `amd-desktop`| same as `desktop`, on a Ryzen 9 3900X + GTX 1070; core 10 (CPUs 10+22) isolated via `isolcpus` || `laptop`      | `laptop`     | personal laptop                               |
 | `work_pc`     | `pcte276928` | CERN desktop, two monitors, `/mnt/lab` sshfs  |
 | `work_laptop` | `lapte277203`| CERN laptop, fingerprint reader, `/mnt/lab`   |
 | `daq-laptop`  | `lapte234119`| cryo lab DAQ laptop, KDE, shared, reachable remotely |

@@ -1,11 +1,7 @@
-# Second gaming desktop: Ryzen 9 3900X + GTX 1070. Meant to end up the same as
-# `desktop`; the differences are the CPU vendor (microcode/kvm module live in
-# hardware-configuration.nix) and the isolated core below.
-#
-# Cut down to a first-boot build for now: enough for i3 + the isolated core,
-# and not much else, so the first rebuild isn't a multi-gigabyte download.
-# Everything held back is commented and tagged FIRST_GO — `grep -rn FIRST_GO`
-# over the repo lists all of it, here and in home-manager/amd-desktop.nix.
+# Second gaming desktop: Ryzen 9 3900X + GTX 1070. Same software as `desktop`;
+# the differences are the CPU vendor (microcode/kvm module live in
+# hardware-configuration.nix), the isolated core below, and sops/VPN being off
+# until this machine has an age key.
 {
   config,
   pkgs,
@@ -16,14 +12,9 @@
     ./hardware-configuration.nix
     ./../shared/global # auto picks default.nix
     ./../shared/optional/i3.nix # sddm + i3 session
-    # FIRST_GO: steam pulls proton-ge and the 32-bit graphics stack, which is
-    # the single biggest download in the whole config.
-    # ./../shared/optional/steam.nix
-    # FIRST_GO: local DNS server. Nothing depends on it; without it the machine
-    # just uses DHCP's resolver.
-    # ./../shared/optional/blocky.nix
-    # FIRST_GO: openrazer kernel module + daemon, only needed for the peripherals.
-    # ./../shared/optional/razer.nix
+    ./../shared/optional/blocky.nix
+    ./../shared/optional/steam.nix
+    ./../shared/optional/razer.nix
   ];
 
   # Networking
@@ -62,26 +53,20 @@
   # Enable OpenGL
   hardware.graphics.enable = true;
 
-  # FIRST_GO: no proprietary NVIDIA driver yet — it is a large download and it
-  # builds a kernel module against the running kernel. Without it X falls back
-  # to nouveau, which drives a GTX 1070 well enough for i3 and a browser (no
-  # reclocking, so it stays at low clocks, and no CUDA/Vulkan worth using).
-  # Uncomment this block, rebuild, reboot, and it takes over.
-  #
-  # services.xserver.videoDrivers = ["nvidia"];
-  #
-  # hardware.nvidia = {
-  #   modesetting.enable = true;
-  #   powerManagement.enable = false;
-  #   powerManagement.finegrained = false;
-  #   # GTX 1070 is Pascal: the open kernel modules need Turing or newer, so
-  #   # this stays on the proprietary ones.
-  #   open = false;
-  #   nvidiaSettings = true;
-  #   # 580 is the last branch that supports Pascal — the current `stable`
-  #   # (590+) has dropped it, so pin the legacy branch like `desktop` does.
-  #   package = config.boot.kernelPackages.nvidiaPackages.legacy_580;
-  # };
+  services.xserver.videoDrivers = ["nvidia"];
+
+  hardware.nvidia = {
+    modesetting.enable = true;
+    powerManagement.enable = false;
+    powerManagement.finegrained = false;
+    # GTX 1070 is Pascal: the open kernel modules need Turing or newer, so
+    # this stays on the proprietary ones.
+    open = false;
+    nvidiaSettings = true;
+    # 580 is the last branch that supports Pascal — the current `stable`
+    # (590+) has dropped it, so pin the legacy branch like `desktop` does.
+    package = config.boot.kernelPackages.nvidiaPackages.legacy_580;
+  };
 
   # No sops on this machine: it has no age key in .sops.yaml yet, and turning
   # this on before it does makes activation fail. Uncomment once SOPS-SETUP.md
@@ -96,20 +81,18 @@
   #   # don't let wg-quick swap in Nord's DNS and bypass the blocklists.
   #   nordvpn.dns = [];
 
-  # FIRST_GO: goes back with the NVIDIA block above — these only mean anything
-  # to the proprietary driver. Persists its compiled-shader cache: on NVIDIA
-  # these vars govern the on-disk ISA cache for BOTH OpenGL and Vulkan. By
-  # default the cache is size-limited and the driver's cleanup pass evicts
-  # entries, so a big shader set like CS2's gets trimmed between sessions and
-  # has to be rebuilt on every launch (the slow "Building Vulkan shaders"
-  # screen). SKIP_CLEANUP keeps entries, and the larger size gives them room to
-  # live. Set at session scope (not just Steam launch options) so Steam's
-  # separate background shader-processing pass benefits too.
-  #
-  # environment.sessionVariables = {
-  #   __GL_SHADER_DISK_CACHE = "1";
-  #   __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1";
-  #   __GL_SHADER_DISK_CACHE_SIZE = "12000000000"; # ~12 GB
-  # };
+  # Persist the NVIDIA driver's compiled-shader cache. On NVIDIA these vars
+  # govern the on-disk ISA cache for BOTH OpenGL and Vulkan. By default the
+  # cache is size-limited and the driver's cleanup pass evicts entries, so a
+  # big shader set like CS2's gets trimmed between sessions and has to be
+  # rebuilt on every launch (the slow "Building Vulkan shaders" screen).
+  # SKIP_CLEANUP keeps entries, and the larger size gives them room to live.
+  # Set at session scope (not just Steam launch options) so Steam's separate
+  # background shader-processing pass benefits too.
+  environment.sessionVariables = {
+    __GL_SHADER_DISK_CACHE = "1";
+    __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1";
+    __GL_SHADER_DISK_CACHE_SIZE = "12000000000"; # ~12 GB
+  };
   system.stateVersion = "24.11"; # Did you read the comment?
 }
