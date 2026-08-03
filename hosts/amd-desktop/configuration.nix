@@ -67,7 +67,7 @@
     package = config.boot.kernelPackages.nvidiaPackages.legacy_580;
   };
 
-  secrets.enable = true;
+  # secrets.enable = true;
 
   # NordLynx. Off at boot (nordvpn.autoStart stays false) — `vpn up`, the
   # polybar shield, or mod+d → vpn-menu brings it up.
