@@ -7,6 +7,7 @@
     ./features/cli/ani-cli.nix
     ./features/cs2.nix
     ./features/minecraft.nix
+    ./features/rs.nix
     ./features/sound.nix
     ./features/wallpaper.nix
     ./features/i3.nix

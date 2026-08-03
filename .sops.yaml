@@ -27,6 +27,12 @@ keys:
   - &work_laptop age15x60jwwegnk542nhvlvw2y5zagdr2ed47chx5qx772a2txnrtgjshwrn4e
   - &work_pc age1p97we57g5c5c7n63hny9adjnra3f2an604glhu3em3sfzxvyqgxqe26vhv
   - &daq-laptop age1eujfkrv94v8qq35y26h48kadmk8ksu84y3r73y49m0s599rwxv9qpcq864
+  # amd-desktop: no key yet. Once the machine exists, run SOPS-SETUP.md step 2
+  # on it, paste `age-keygen -y /var/lib/sops-nix/key.txt` here, uncomment this
+  # anchor and the two *amd-desktop references below, then
+  # `sops updatekeys secrets/common.yaml`. Until then its `secrets.enable`
+  # activation will fail, because it can't decrypt common.yaml.
+  # - &amd-desktop age1...
 
 creation_rules:
   # Machine-readable secrets: ssh private keys, the NordLynx key. Readable by
@@ -41,6 +47,7 @@ creation_rules:
           - *work_pc
           - *laptop
           - *daq-laptop
+          # - *amd-desktop
           # add *laptop / *work_pc / *work_laptop / *daq-laptop here as you
           # set them up,
           # then run `sops updatekeys secrets/common.yaml` (step 5)
@@ -71,3 +78,6 @@ creation_rules:
   - path_regex: secrets/hosts/daq-laptop\.yaml$
     key_groups:
       - age: [*admin, *daq-laptop]
+  # - path_regex: secrets/hosts/amd-desktop\.yaml$
+  #   key_groups:
+  #     - age: [*admin, *amd-desktop]

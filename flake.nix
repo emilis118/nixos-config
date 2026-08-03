@@ -110,6 +110,7 @@
 
     hosts = {
       desktop = {};
+      amd-desktop = {};
       laptop = {};
       work_pc = {};
       work_laptop = {};
