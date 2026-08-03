@@ -27,7 +27,7 @@ keys:
   - &work_laptop age15x60jwwegnk542nhvlvw2y5zagdr2ed47chx5qx772a2txnrtgjshwrn4e
   - &work_pc age1p97we57g5c5c7n63hny9adjnra3f2an604glhu3em3sfzxvyqgxqe26vhv
   - &daq-laptop age1eujfkrv94v8qq35y26h48kadmk8ksu84y3r73y49m0s599rwxv9qpcq864
-  - &amd-desktop age1jeyje0ycd0prlpy66csscjdfeary6yle3crxzwmh7ft948puedwq5av6eg
+  - &amd-desktop age1cxtcynsa42a272hsm0jdp9eqpjx0q6dvlnycg8tl4qjmrwkptvkqljg0n3
   # amd-desktop: no key, and `secrets.enable` is off there, so it needs none.
   # If that changes, run SOPS-SETUP.md step 2 on it, paste
   # `age-keygen -y /var/lib/sops-nix/key.txt` here, uncomment this anchor and
