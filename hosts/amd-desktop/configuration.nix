@@ -19,22 +19,35 @@
   # Networking
   networking.hostName = "amd-desktop";
 
-  # Keep CPU 10 out of the scheduler's reach: nothing is placed on it unless
-  # it is pinned there explicitly (`taskset -c 10 ...`, or a systemd unit with
-  # CPUAffinity=10). isolcpus is the boot-time form and is what actually keeps
-  # the core clean from early boot — cgroup cpusets can only push work off a
-  # core after userspace is up.
+  # Keep physical core 10 out of the scheduler's reach: nothing lands on it
+  # unless pinned there explicitly (`taskset -c 10 ...`, or a systemd unit with
+  # CPUAffinity=10). isolcpus is the boot-time form and is what keeps the core
+  # clean from early boot — cgroup cpusets can only push work off a core once
+  # userspace is up.
   #
-  # 3900X is 12c/24t, so the logical CPUs are 0-23 and CPU 10's SMT sibling is
-  # CPU 22 (Linux enumerates thread 0 of every core first). Isolating 10 alone
-  # leaves normal work running on 22, sharing the physical core's front end; to
-  # hand the whole core over, use "isolcpus=10,22" instead.
+  # Both threads, not just CPU 10: this is a 12c/24t part and
+  # /sys/devices/system/cpu/cpu10/topology/thread_siblings_list reads "10,22",
+  # so 22 is the same physical core. Isolating 10 alone would leave ordinary
+  # work running on 22, sharing that core's L1/L2 and front end — which defeats
+  # the point, and matters here because this core logs cache MCEs.
   #
-  # Two optional companions, if the isolated core is meant for latency-
-  # sensitive work rather than just being held in reserve:
-  #   nohz_full=10  — stop the periodic scheduler tick on it
-  #   rcu_nocbs=10  — move RCU callback processing off it
-  boot.kernelParams = ["isolcpus=10"];
+  # nohz_full/rcu_nocbs take the periodic tick and the RCU callback work off it
+  # as well; irqaffinity is the default IRQ mask, because isolcpus on its own
+  # does not stop device interrupts from being steered onto an isolated CPU.
+  # Drivers with managed per-CPU interrupts (NVMe queues, and similar) ignore
+  # that mask, so it thins the interrupt load rather than eliminating it.
+  boot.kernelParams = [
+    "isolcpus=10,22"
+    "nohz_full=10,22"
+    "rcu_nocbs=10,22"
+    "irqaffinity=0-9,11-21,23"
+  ];
+
+  # Decode and persist machine-check events, so the cache errors on core 10 can
+  # be read back as "corrected vs uncorrected, and how often" (`ras-mc-ctl
+  # --errors` / `--summary`) instead of being scraped out of dmesg. rasdaemon
+  # is the maintained tool for this; mcelog is dead on current kernels.
+  hardware.rasdaemon.enable = true;
 
   # Enable OpenGL
   hardware.graphics.enable = true;
