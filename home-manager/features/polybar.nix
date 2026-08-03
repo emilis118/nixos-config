@@ -39,9 +39,24 @@ with lib; let
         exit 0
     fi
 
-    # package temperature of the coretemp sensor; empty when not present
-    TEMP_PATH=$(for i in /sys/devices/platform/coretemp.*/hwmon/hwmon*/temp1_input; do
-        [ -e "$i" ] && echo "$i" && break
+    # CPU package temperature; empty when no supported sensor is present.
+    #
+    # Probed by hwmon *driver name* rather than by device path, because the
+    # path is vendor-specific and this file is shared by every host: Intel
+    # exposes it as /sys/devices/platform/coretemp.N/... while AMD's k10temp
+    # hangs off PCI (/sys/devices/pci0000:00/0000:00:18.3/...), so the old
+    # coretemp glob matched nothing on amd-desktop. That did not just hide the
+    # temperature — an empty TEMP takes the same render branch as "toggled
+    # off", so the click handler silently stopped doing anything.
+    #
+    # temp1_input is the right input for both: "Package id 0" on coretemp,
+    # "Tctl" on k10temp. Other hwmon devices (asus, nvme, ...) are skipped.
+    TEMP_PATH=$(for h in /sys/class/hwmon/hwmon*; do
+        case "$(cat "$h/name" 2>/dev/null)" in
+            coretemp | k10temp)
+                [ -e "$h/temp1_input" ] && echo "$h/temp1_input" && break
+                ;;
+        esac
     done)
 
     prev_total=0
