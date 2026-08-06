@@ -1,21 +1,5 @@
 {
   "nodes": {
-    "ani-cli-src": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1785054775,
-        "narHash": "sha256-esskhuWvfzRqxMuTKW8afhL41pHReDO0AQBAiQJY9/Q=",
-        "owner": "pystardust",
-        "repo": "ani-cli",
-        "rev": "dc2a2f304a5ef3594489e7cfe6bd1aed2e46aded",
-        "type": "github"
-      },
-      "original": {
-        "owner": "pystardust",
-        "repo": "ani-cli",
-        "type": "github"
-      }
-    },
     "claude-code": {
       "inputs": {
         "flake-utils": "flake-utils",
@@ -242,7 +226,6 @@
     },
     "root": {
       "inputs": {
-        "ani-cli-src": "ani-cli-src",
         "claude-code": "claude-code",
         "herdr": "herdr",
         "home-manager": "home-manager",

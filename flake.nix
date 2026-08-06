@@ -10,10 +10,6 @@
     # upstream flake's overlay (exposes `herdr`, used in features/cli).
     herdr.url = "github:ogulcancelik/herdr";
     herdr.inputs.nixpkgs.follows = "nixpkgs";
-    # track ani-cli master directly so `nix flake update` always gets the
-    # newest script instead of waiting for the nixpkgs version bump
-    ani-cli-src.url = "github:pystardust/ani-cli";
-    ani-cli-src.flake = false;
     # nixy's neovim (built with nvf); flake = false so we don't pull in
     # nixy's heavy inputs (hyprland, stylix, ...) — we only use its nvf modules.
     nvf.url = "github:notashelf/nvf";
@@ -43,12 +39,6 @@
       nixpkgs.overlays = [
         claude-code.overlays.default
         inputs.herdr.overlays.default
-        (_final: prev: {
-          ani-cli = prev.ani-cli.overrideAttrs (_old: {
-            version = "master-${inputs.ani-cli-src.shortRev or "dirty"}";
-            src = inputs.ani-cli-src;
-          });
-        })
         # nixy's neovim as a separate package, exposed as `nnvim` in neovim.nix
         (final: _prev: {
           nixy-nvim =
