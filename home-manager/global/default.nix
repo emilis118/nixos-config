@@ -14,6 +14,7 @@
     ../features/dnd.nix
     ../features/cheatsheet
     ../features/clipboard.nix
+    ../features/vlc.nix
   ];
 
   # sops-backed password store: `pw` in a terminal, or the "pw" tab in rofi.
