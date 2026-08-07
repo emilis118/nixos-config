@@ -14,6 +14,10 @@
       "wheel"
       "networkmanager"
       "gamemode"
+      # /dev/kvm is root:kvm 0660, so running VMs unprivileged (quickemu,
+      # qemu-system-*) needs this. Without it QEMU silently falls back to
+      # software emulation, or refuses outright.
+      "kvm"
     ];
 
     # packages = [pkgs.home-manager];
