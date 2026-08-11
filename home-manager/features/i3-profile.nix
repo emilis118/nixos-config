@@ -58,6 +58,14 @@ in {
         assign [class="Postman"] $ws5
         assign [class="cs2"] $ws3
         assign [class="^Minecraft"] $ws3
+        # WM_CLASS comes from the --class in features/naruto-arena; chromium
+        # capitalises the class half of the pair, hence the alternation. The
+        # window sizes itself to the game's 770x560 stage and picks its own
+        # position (one slot per account), which only holds while it floats —
+        # tiled it would be stretched over half the screen around a stage that
+        # does not grow with it.
+        assign [class="^[Nn]aruto-arena$"] $ws3
+        for_window [class="^[Nn]aruto-arena$"] floating enable
         assign [class="steam"] $ws7
 
         bindsym Mod1+Shift+f exec firefox

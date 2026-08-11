@@ -7,7 +7,7 @@
     ./features/cli/ani-cli.nix
     ./features/cs2.nix
     ./features/minecraft.nix
-    ./features/lutris.nix
+    ./features/naruto-arena
     ./features/rs.nix
     ./features/sound.nix
     ./features/wallpaper.nix
