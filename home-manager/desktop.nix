@@ -13,6 +13,7 @@
     ./features/wallpaper.nix
     ./features/i3.nix
     ./features/flameshot.nix
+    ./features/rs.nix
   ];
 
   polybarModules.gpu = true;
