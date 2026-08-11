@@ -58,6 +58,9 @@ in {
         assign [class="Postman"] $ws5
         assign [class="cs2"] $ws3
         assign [class="^Minecraft"] $ws3
+        # WM_CLASS comes from the --class in features/naruto-arena; chromium
+        # capitalises the class half of the pair, hence the alternation.
+        assign [class="^[Nn]aruto-arena$"] $ws3
         assign [class="steam"] $ws7
 
         bindsym Mod1+Shift+f exec firefox
