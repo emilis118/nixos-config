@@ -1,5 +1,4 @@
-# Ieva's profile on `desktop` — and, via ./amd-desktop-ieva.nix, temporarily
-# on amd-desktop as well, so keep this host-neutral (grep TEMP-IEVA).
+# Ieva's profile on `desktop`.
 #
 # Deliberately does not import ./global — that
 # one hardcodes emilis' username, home directory and FLAKE path, and pulls in
