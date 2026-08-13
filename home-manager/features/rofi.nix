@@ -52,7 +52,10 @@
   # 6: the same key has to be placed on every machine that should be able to
   # decrypt secrets/passwords.yaml, a rebuild alone won't put it there).
   rofi-remmina = pkgs.writeShellScriptBin "rofi-remmina" ''
-    store=${lib.escapeShellArg config.passwordStore.file}
+    # not escapeShellArg: the value is itself a shell expansion
+    # ("${FLAKE:-$HOME/...}/secrets/passwords.yaml") that has to run at
+    # runtime, same as passwordStore's own pwLib.
+    store="${config.passwordStore.file}"
 
     warn() {
       ${pkgs.libnotify}/bin/notify-send -a remmina "remmina" "$1" 2>/dev/null
