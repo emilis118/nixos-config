@@ -5,6 +5,7 @@
 {
   config,
   pkgs,
+  lib,
   ...
 }: {
   imports = [
@@ -15,10 +16,38 @@
     ./../shared/optional/blocky.nix
     ./../shared/optional/steam.nix
     ./../shared/optional/razer.nix
+    # TEMP-IEVA: both lines below go when ieva no longer uses this machine.
+    ./../shared/optional/kde.nix # plasma 6 on wayland, for ieva
+    ./../shared/users/ieva
+    # end TEMP-IEVA
   ];
 
   # Networking
   networking.hostName = "amd-desktop";
+
+  # ---------------------------------------------------------------------
+  # TEMP-IEVA — temporary: ieva's account on this machine.
+  #
+  # To remove: `grep -rn TEMP-IEVA .` and delete every block it finds —
+  # this one, the two imports above, home-manager/amd-desktop-ieva.nix, and
+  # the amd-desktop entry in flake.nix's `hosts`. Nothing else here depends
+  # on it, and the host is back to i3-only autologin as emilis.
+  #
+  # Same override as hosts/desktop: optional/i3.nix pins autologin to
+  # emilis/none+i3, and mkForce is needed on defaultSession because i3.nix
+  # assigns it outright (plasma6 only mkDefaults it), so a plain assignment
+  # would be a conflict rather than a win. Session takes the .desktop
+  # filename, and "plasma" is the Wayland session.
+  #
+  # While this is in place the machine boots into ieva's Plasma session; get
+  # to i3 by logging out and picking it from sddm's session menu.
+  services.displayManager.defaultSession = lib.mkForce "plasma";
+  services.displayManager.sddm.settings.Autologin = {
+    User = lib.mkForce "ieva";
+    Session = lib.mkForce "plasma.desktop";
+  };
+  # end TEMP-IEVA
+  # ---------------------------------------------------------------------
 
   # This CPU has one bad physical core. rasdaemon decodes every event
   # identically: bank 1 (Instruction Fetch Unit), "IC data array parity",

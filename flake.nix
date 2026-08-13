@@ -99,8 +99,11 @@
       };
 
     hosts = {
-      desktop = {};
-      amd-desktop = {};
+      # ieva has her own account on this one (Plasma, autologin); see
+      # hosts/shared/users/ieva.
+      desktop = {extraHomeUsers = ["ieva"];};
+      # TEMP-IEVA: revert to `amd-desktop = {};` when she stops using it.
+      amd-desktop = {extraHomeUsers = ["ieva"];};
       laptop = {};
       work_pc = {};
       work_laptop = {};

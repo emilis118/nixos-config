@@ -20,13 +20,13 @@
   # workspace names / window assignments live in features/i3-profile.nix
   i3Profile.personal = true;
 
-  # Copied from `desktop`, whose monitor this is — check `xrandr` on this
-  # machine and set the real output name and mode. A mode this output doesn't
-  # have makes xrandr exit with an error at i3 startup; the session still comes
-  # up, just at whatever mode X picked.
+  # Output name verified with `xrandr` on this machine: the panel is on DP-4,
+  # not DP-0, which is why this line used to fail at i3 startup and leave the
+  # session at 59.95Hz. A mode the output doesn't have makes xrandr exit with an
+  # error the same way.
   xsession.windowManager.i3.config.startup = [
     {
-      command = "xrandr --output DP-0 --mode 2560x1440 --rate 164.83";
+      command = "xrandr --output DP-4 --mode 2560x1440 --rate 164.83";
       always = true;
     }
   ];
