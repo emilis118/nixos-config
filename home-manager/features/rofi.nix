@@ -35,51 +35,32 @@
     setsid -f firefox --new-tab "$url" >/dev/null 2>&1 </dev/null
   '';
 
-  # Saved remmina profiles surfaced as a "remote" tab. rofi's own ssh mode is
-  # built in and only reads ~/.ssh/config, so remote desktops get their own
-  # mode instead. The profiles are read at runtime, so one added from the
-  # remmina GUI shows up without a rebuild.
+  # Remote-desktop connections surfaced as a "remote" tab, entirely driven by
+  # `remmina.connections` (features/remote.nix) so the list is identical on
+  # every machine that imports it - no dependence on whatever remmina's own
+  # GUI happened to save locally on this particular machine.
   #
-  # `remmina.connections` (features/remote.nix) adds a second source: entries
-  # declared in nix with no .remmina file on disk. Selecting one decrypts the
-  # password for its username from the sops store (secrets/passwords.yaml,
-  # key "rdp-<username>") and hands remmina a one-off
-  # "protocol://user:pass@server" URI, so the password never touches disk -
-  # only the process argv, same trust level as the "pw" tab's clipboard.
-  # Connections sharing a username share one store entry. A declared
-  # connection hides the GUI-saved file of the same name, so migrating one
-  # just means adding it below.
+  # Selecting one decrypts the password for its username from the sops store
+  # (secrets/passwords.yaml, key "rdp-<username>") and hands remmina a
+  # one-off "protocol://user:pass@server" URI, so the password never touches
+  # disk - only the process argv, same trust level as the "pw" tab's
+  # clipboard. Connections sharing a username share one store entry.
+  #
+  # A failed decrypt or missing entry raises a desktop notification instead
+  # of silently doing nothing - the likely cause is that this machine has no
+  # admin sops key yet (~/.config/sops/age/keys.txt, see SOPS-SETUP.md step
+  # 6: the same key has to be placed on every machine that should be able to
+  # decrypt secrets/passwords.yaml, a rebuild alone won't put it there).
   rofi-remmina = pkgs.writeShellScriptBin "rofi-remmina" ''
-    dir="''${XDG_DATA_HOME:-$HOME/.local/share}/remmina"
     store=${lib.escapeShellArg config.passwordStore.file}
 
-    declared="${lib.concatMapStringsSep " " (c: lib.escapeShellArg c.name) remminaConnections}"
-    is_declared() {
-      for d in $declared; do [ "$d" = "$1" ] && return 0; done
-      return 1
+    warn() {
+      ${pkgs.libnotify}/bin/notify-send -a remmina "remmina" "$1" 2>/dev/null
     }
 
     if [ -z "$1" ]; then
-      for f in "$dir"/*.remmina; do
-        [ -e "$f" ] || continue
-        name="" server="" user="" proto=""
-        # key=value file; take the first hit for each key we display
-        while IFS='=' read -r k v; do
-          case "$k" in
-          name) [ -n "$name" ] || name="$v" ;;
-          server) [ -n "$server" ] || server="$v" ;;
-          username) [ -n "$user" ] || user="$v" ;;
-          protocol) [ -n "$proto" ] || proto="$v" ;;
-          esac
-        done <"$f"
-        [ -n "$name" ] || name="''${f##*/}"
-        is_declared "$name" && continue
-        # info\x1f<path> comes back as $ROFI_INFO on the selection call
-        printf '%s\0icon\x1f%s\x1finfo\x1f%s\n' \
-          "$name  ($proto $user@$server)" preferences-desktop-remote-desktop "$f"
-      done
       ${lib.concatMapStrings (c: ''
-        printf '%s\0icon\x1f%s\x1finfo\x1fnix:%s\n' \
+        printf '%s\0icon\x1f%s\x1finfo\x1f%s\n' \
           ${lib.escapeShellArg "${c.name}  (${c.protocol} ${c.username}@${c.server})"} \
           preferences-desktop-remote-desktop \
           ${lib.escapeShellArg c.name}
@@ -91,26 +72,24 @@
     [ -n "$ROFI_INFO" ] || exit 0
 
     case "$ROFI_INFO" in
-    nix:*)
-      entry="''${ROFI_INFO#nix:}"
-      case "$entry" in
-      ${lib.concatMapStrings (c: ''
+    ${lib.concatMapStrings (c: ''
         ${lib.escapeShellArg c.name})
-          pass=$(${pkgs.sops}/bin/sops -d --output-type json "$store" 2>/dev/null |
-            ${pkgs.jq}/bin/jq -er --arg e ${lib.escapeShellArg "rdp-${c.username}"} '.[$e].password // empty') || exit 0
+          creds=$(${pkgs.sops}/bin/sops -d --output-type json "$store" 2>/dev/null) || {
+            warn "couldn't decrypt the password store - is the sops admin key at ~/.config/sops/age/keys.txt on this machine?"
+            exit 1
+          }
+          pass=$(printf '%s' "$creds" | ${pkgs.jq}/bin/jq -er --arg e ${lib.escapeShellArg "rdp-${c.username}"} '.[$e].password // empty') || {
+            warn "no 'rdp-${c.username}' entry in the password store (pw edit)"
+            exit 1
+          }
           uri=$(${pkgs.jq}/bin/jq -rn --arg u ${lib.escapeShellArg c.username} --arg p "$pass" --arg s ${lib.escapeShellArg c.server} \
             '"${c.protocol}://" + ($u|@uri) + ":" + ($p|@uri) + "@" + ($s|@uri)')
           setsid -f ${pkgs.remmina}/bin/remmina -c "$uri" >/dev/null 2>&1 </dev/null
           ;;
       '')
       remminaConnections}
-      *) exit 0 ;;
-      esac
-      exit 0
-      ;;
+    *) exit 0 ;;
     esac
-
-    setsid -f ${pkgs.remmina}/bin/remmina -c "$ROFI_INFO" >/dev/null 2>&1 </dev/null
   '';
 in {
   options.rofiModes = {
@@ -157,10 +136,10 @@ in {
     });
     default = [];
     description = ''
-      Remote-desktop connections known up front, shown in the rofi "remote"
-      tab alongside anything saved from the remmina GUI, with no .remmina
-      file on disk for these - see rofi-remmina above for how the password
-      reaches remmina at connect time.
+      Remote-desktop connections shown in the rofi "remote" tab - the whole
+      tab is generated from this list, with no .remmina file on disk for any
+      of them. See rofi-remmina above for how the password reaches remmina
+      at connect time.
     '';
   };
 

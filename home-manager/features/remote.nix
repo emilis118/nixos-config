@@ -4,13 +4,13 @@
   # saved remmina profiles get their own tab in rofi (see rofi.nix)
   rofiModes.remote = true;
 
-  # Migrated from the profiles saved in remmina's own GUI store
-  # (~/.local/share/remmina/*.remmina on work_pc): server and username
-  # aren't secret, so they're declared here; the password for each username
-  # goes in secrets/passwords.yaml under "rdp-<username>" (`pw edit`) - e.g.
-  # "rdp-cryolab" covers every connection below that logs in as cryolab.
-  # Once a username's password is in the store, the .remmina files using it
-  # can be deleted - rofi-remmina hides them in favor of these anyway.
+  # Migrated from the profiles that used to be saved in remmina's own GUI
+  # store (~/.local/share/remmina/*.remmina): server and username aren't
+  # secret, so they're declared here; the password for each username goes in
+  # secrets/passwords.yaml under "rdp-<username>" (`pw edit`) - e.g.
+  # "rdp-cryolab" covers every connection below that logs in as cryolab. The
+  # rofi "remote" tab is now driven only by this list (see rofi.nix), so the
+  # old .remmina files are no longer read and can be deleted.
   remmina.connections = [
     {
       name = "adrian_win_lab";
