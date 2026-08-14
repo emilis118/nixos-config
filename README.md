@@ -66,7 +66,8 @@ imports, so a profile reads as a list of switches:
   `sshKeys` defaults to every key in `secrets/common.yaml`, and
   `home-manager/features/cli/ssh.nix` turns that list into the `~/.ssh/config`
   blocks (`lab`, `github.com`, `gitlab.cern.ch`) that say which key goes where
-- `nordvpn.enable` + `endpoint`/`publicKey` — WireGuard VPN (`hosts/shared/global/nordvpn.nix`)
+- `nordvpn.enable` + `favourites` (and the `endpoint`/`publicKey` fallback) —
+  WireGuard VPN (`hosts/shared/global/nordvpn.nix`)
 
 ## Secrets
 
@@ -85,9 +86,24 @@ that is in `SOPS-SETUP.md` (gitignored).
 ## VPN
 
 NordVPN over plain WireGuard (NordLynx), no Nord client. `vpn up|down|toggle|
-status`, the shield in polybar (left-click toggles, right-click opens a menu),
-or the launcher. `nordvpn-pick [country]` prints a current server to paste into
-the host config. Off at boot unless `nordvpn.autoStart = true`.
+status`, the shield in polybar (left-click toggles, right-click opens the menu),
+or the launcher. Off at boot unless `nordvpn.autoStart = true`.
+
+The server is picked at runtime, so changing it never needs a rebuild:
+
+- `vpn up France` / `vpn up Paris` / `vpn up fr1178` — a country, a city or one
+  named server. `vpn fastest` takes the fastest anywhere, `vpn list [where]`
+  shows what's on offer with each server's load
+- the rofi menu does the same with `nordvpn.favourites` as one-click entries,
+  a country → city → server drill-down, and a live server list
+- the pick lives in `/var/lib/nordlynx/current` and survives reboots; wg-quick's
+  postUp points the interface at it, `vpn default` forgets it again
+
+`vpn up` also checks with Nord that traffic is really going through the tunnel,
+and picks a fresh server in the same country if it isn't — which is what a
+"connected" tunnel that gets nowhere means: Nord retired the server. The
+`nordvpn.endpoint`/`publicKey` pair in the config is only the fallback used
+before anything is picked; `nordvpn-pick [where]` prints a current one for it.
 
 ## Clipboard
 

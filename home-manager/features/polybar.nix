@@ -565,14 +565,18 @@ with lib; let
   # also touches the flag file on every up/down, which wakes the loop
   # immediately so a click doesn't feel laggy.
   vpnScript = pkgs.writeShellScript "polybar-vpn" ''
-    export PATH=${makeBinPath [pkgs.systemd pkgs.coreutils pkgs.inotify-tools]}:$PATH
+    export PATH=${makeBinPath [pkgs.systemd pkgs.coreutils pkgs.gnused pkgs.inotify-tools]}:$PATH
 
     STATE_FILE="/tmp/polybar_vpn_state"
     [ -f "$STATE_FILE" ] || : >"$STATE_FILE"
 
     render() {
         if systemctl is-active --quiet wg-quick-nordlynx.service; then
-            echo "%{F${green}}󰦝%{F-}"
+            # which server `vpn` last picked, so the bar says *where* you are
+            # and not just that you're somewhere (empty until anything is
+            # picked - that's the server pinned in the config)
+            cc=$(sed -n 's/^countryCode=//p' /var/lib/nordlynx/current 2>/dev/null | head -1)
+            echo "%{F${green}}󰦝''${cc:+ $cc}%{F-}"
         else
             echo "%{F${dim}}󰦞%{F-}"
         fi
