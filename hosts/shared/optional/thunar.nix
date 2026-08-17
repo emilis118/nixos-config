@@ -7,6 +7,8 @@
     ];
   };
 
+  environment.systemPackages = [pkgs.xarchiver]; # backend archive manager thunar-archive-plugin shells out to
+
   services.gvfs.enable = true; # mounting, trash://, smb/sftp network shares
   services.tumbler.enable = true; # thumbnails (images, video, pdf)
 }
