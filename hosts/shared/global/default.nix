@@ -2,6 +2,7 @@
   imports = [
     ./base_config.nix
     ./boot.nix
+    ./shutdown.nix
     ./nix.nix
     ./locale.nix
     ./fonts.nix
