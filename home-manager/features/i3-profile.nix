@@ -43,14 +43,14 @@ in {
         for_window [class="net-runelite-client-RuneLite"] floating enable
         for_window [class="net-runelite-launcher-Launcher"] floating enable
 
-        # Steam's friends list and chat windows are separate top-level
-        # windows; tiling them next to whatever else is open is never what
-        # you want. i3 matches titles as unanchored regexes, so "Chat"
-        # catches "<friend> - Chat" too. If a chat still tiles, check its
-        # real title with `xprop WM_NAME` and add it here.
-        for_window [class="^[Ss]team$" title="Friends List"] floating enable
-        for_window [class="^[Ss]team$" title="Chat"] floating enable
-        for_window [class="^[Ss]team$" title="^Steam - News"] floating enable
+        # Steam's friends list, chats and news popups are separate top-level
+        # windows sharing the main window's WM_CLASS ("steamwebhelper",
+        # "steam"), and a chat's title is only the friend's name — there is no
+        # suffix to match on. So float every steam window and tile back just
+        # the main one, whose title is exactly "Steam". Later rules win, hence
+        # the ordering.
+        for_window [class="^[Ss]team$"] floating enable
+        for_window [class="^[Ss]team$" title="^Steam$"] floating disable
 
         assign [class="net-runelite-client-RuneLite"] $ws4
         assign [class="discord"] $ws9
