@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Read(./secrets/**)",
+      "Edit(./secrets/**)",
+      "Read(~/.config/sops/age/**)",
+      "Edit(~/.config/sops/age/**)",
+      "Read(//var/lib/sops-nix/**)",
+      "Read(~/.ssh/**)",
+      "Bash(cat *secrets/*)",
+      "Bash(bat *secrets/*)",
+      "Bash(head *secrets/*)",
+      "Bash(tail *secrets/*)",
+      "Bash(less *secrets/*)",
+      "Bash(sops *)",
+      "Bash(age *)"
+    ]
+  },
+  "sandbox": {
+    "filesystem": {
+      "denyRead": [
+        "./secrets",
+        "~/.config/sops/age",
+        "/var/lib/sops-nix"
+      ]
+    }
+  }
+}

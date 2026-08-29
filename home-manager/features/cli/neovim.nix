@@ -339,6 +339,10 @@
           };
         };
 
+        # 3-way merge UI + diff/file-history browser. Set as git's mergetool
+        # in features/cli/git.nix, so `git mergetool` lands here.
+        diffview.enable = true;
+
         telescope.enable = true;
         # telescope pulls this in anyway; explicit to silence the
         # nixvim deprecation warning about implicit enabling
