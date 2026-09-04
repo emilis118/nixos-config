@@ -208,9 +208,59 @@ in {
       rofi-power-menu
       rofi-pulse-select
       todofi-sh
+      todo-txt-cli # todofi.sh is only a rofi front-end for `todo.sh`
       networkmanager_dmenu # wifi picker, launched from the polybar wlan icon
       papirus-icon-theme # icons for rofi drun mode
     ];
+
+    # todofi.sh shells out to `todo.sh -d ~/.config/todo/config` for every
+    # single operation, and todo.sh hard-fails ("Cannot read configuration
+    # file") when that path is missing. Without this file the todo tab opens
+    # but is permanently empty and the "add" shortcut silently adds nothing -
+    # the failure is invisible because todofi.sh throws stderr away.
+    # todo.sh creates TODO_DIR and the .txt files themselves on first run.
+    xdg.configFile."todo/config".text = ''
+      export TODO_DIR="${config.xdg.dataHome}/todo"
+      export TODO_FILE="$TODO_DIR/todo.txt"
+      export DONE_FILE="$TODO_DIR/done.txt"
+      export REPORT_FILE="$TODO_DIR/report.txt"
+
+      # todofi.sh does its own pango highlighting, so keep todo.sh's ANSI
+      # colours out of the strings it parses.
+      export TODOTXT_PLAIN=1
+      # keep completed items in todo.txt (marked "x ...") instead of moving
+      # them to done.txt on the spot, so todofi's active/done view (Super+Tab)
+      # has something in it; archive on demand from its help menu.
+      export TODOTXT_AUTO_ARCHIVE=0
+    '';
+
+    # todofi.sh's built-in EDITOR default is `gedit`; the "open todo.txt" and
+    # "see configuration files" actions in its help menu just do nothing when
+    # it isn't installed. It's launched from rofi with no terminal attached,
+    # so $EDITOR=nvim can't work either - wrap it in one.
+    #
+    # The shortcut remaps are the other half of the fix. todofi ships on
+    # Alt+<key>, but i3's modifier is Mod1 (alt) and X hands a grabbed combo
+    # to i3 rather than to the focused window - so stock Alt+d / Alt+p /
+    # Alt+c / Alt+h never reach rofi at all, they open drun, clip and calc
+    # and move focus left instead.
+    #
+    # Moving the whole set onto Mod4 (win) keeps every mnemonic letter and
+    # sidesteps the alt grabs: i3 only binds Mod4+h/j/k/l (move/resize) and
+    # rofi's own Super defaults are just the digits and Super+equal/minus.
+    # Help is the one exception - Mod4+h is i3's, so it gets i(nfo).
+    xdg.configFile."todofish.conf".text = ''
+      EDITOR='${pkgs.alacritty}/bin/alacritty -e nvim'
+
+      SHORTCUT_NEW="Super+a"
+      SHORTCUT_DONE="Super+d"
+      SHORTCUT_EDIT="Super+e"
+      SHORTCUT_SWITCH="Super+Tab"
+      SHORTCUT_TERM="Super+t"
+      SHORTCUT_FILTERS="Super+p"
+      SHORTCUT_CLEAR="Super+c"
+      SHORTCUT_HELP="Super+i" # not Super+h: i3 has Mod4+h/j/k/l
+    '';
 
     # networkmanager_dmenu uses plain dmenu unless told to use rofi
     xdg.configFile."networkmanager-dmenu/config.ini".text = ''

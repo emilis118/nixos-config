@@ -1,0 +1,48 @@
+/* Month calendar popped out from the polybar clock (right-click).
+   Anchored to the top-centre of the monitor; the launcher script
+   overrides x-offset so the window is centred under the pointer.
+   y-offset clears the bar. The month grid is pre-rendered by `cal`,
+   so the font must stay monospace or the columns fall apart. */
+
+* {
+    bg:        #282A2E;
+    bg-alt:    #373B41;
+    fg:        #C5C8C6;
+    primary:   #F0C674;
+    disabled:  #707880;
+
+    background-color: transparent;
+    text-color: @fg;
+    font: "JetBrainsMono Nerd Font 13";
+}
+
+window {
+    location: north;
+    anchor:   north;
+    y-offset: 40px;
+    /* cal's grid is 20 monospace chars wide; at 13pt JetBrainsMono that is
+       ~198px, plus the paddings and border below. Widening past that just
+       leaves a gap to the right of the block, since the textbox is
+       left-aligned (per-line centring would stagger the columns). */
+    width:    240px;
+    background-color: @bg;
+    border: 2px;
+    border-color: @primary;
+    border-radius: 4px;
+    padding: 10px;
+}
+
+mainbox {
+    children: [message];
+}
+
+message, error-message {
+    background-color: @bg-alt;
+    border-radius: 4px;
+    padding: 8px;
+}
+
+textbox {
+    horizontal-align: 0.0;
+    text-color: @fg;
+}

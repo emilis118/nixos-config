@@ -561,6 +561,55 @@ with lib; let
     done
   '';
 
+  # Month grid popped out under the clock. `cal` already lays the month out
+  # in fixed 3-char columns (2-char right-aligned day + separator), so awk
+  # can address a day cell by offset instead of pattern-matching a number
+  # that also appears in the year — it only wraps today's digits in pango
+  # markup and leaves the padding alone, so the highlight stays cell-sized.
+  calendarScript = pkgs.writeShellScript "polybar-calendar" ''
+    export PATH=${makeBinPath [pkgs.util-linux pkgs.gawk pkgs.xdotool pkgs.i3 pkgs.jq pkgs.coreutils]}:${config.home.profileDirectory}/bin:$PATH
+
+    theme=${../../dotfiles/rofi/calendar.rasi}
+
+    # Centre the window under the pointer: find the monitor containing it and
+    # the pointer's offset from that monitor's horizontal centre (the theme
+    # anchors north, so x-offset shifts from centre). i3 answers over IPC in
+    # milliseconds; xrandr would make the X server re-probe the outputs.
+    eval "$(xdotool getmouselocation --shell)" # sets X and Y
+    pos=$(i3-msg -t get_outputs | jq -r --argjson mx "$X" --argjson my "$Y" '
+        first(.[] | select(.active
+            and .rect.x <= $mx and $mx < .rect.x + .rect.width
+            and .rect.y <= $my and $my < .rect.y + .rect.height))
+        | "\(.name) \($mx - .rect.x - (.rect.width / 2 | floor))"')
+    place=()
+    [ -n "$pos" ] && place=(-m "''${pos% *}" -theme-str "window { x-offset: ''${pos#* }px; }")
+
+    # Leading padding is load-bearing (the textbox renders the block
+    # left-aligned, so cal's own spacing is what lines the columns up);
+    # trailing padding is not, and pango drops it anyway.
+    text=$(cal | awk -v d="$(date +%-d)" '
+        $0 ~ /^[[:space:]]*$/ { next }                       # cal pads to 8 lines
+        { sub(/[ \t]+$/, "") }
+        NR == 1 { print "<span foreground=\"#F0C674\"><b>" $0 "</b></span>"; next }
+        NR == 2 { print "<span foreground=\"#707880\">" $0 "</span>"; next }
+        {
+            out = ""
+            for (i = 0; i < 7; i++) {
+                tok = substr($0, i * 3 + 1, 2)
+                if (tok ~ /[0-9]/ && tok + 0 == d) {
+                    pad = tok; sub(/[0-9].*/, "", pad)       # keep the alignment space outside the highlight
+                    num = substr(tok, length(pad) + 1)
+                    tok = pad "<span background=\"#F0C674\" foreground=\"#282A2E\"><b>" num "</b></span>"
+                }
+                out = out tok (i < 6 ? " " : "")
+            }
+            sub(/[ \t]+$/, "", out)
+            print out
+        }')
+
+    exec rofi -e "$text" -markup -theme "$theme" "''${place[@]}"
+  '';
+
   # NordLynx state. The unit lives on the system bus, so this polls; `vpn`
   # also touches the flag file on every up/down, which wakes the loop
   # immediately so a click doesn't feel laggy.
@@ -875,7 +924,14 @@ in {
           interval = 1;
           date = "%H:%M";
           date-alt = "%Y-%m-%d %H:%M";
-          label = "%date%";
+          # The calendar is bound with a raw action tag rather than the
+          # `click-right` key: that key is only read by custom/{script,ipc,text}
+          # and the pulseaudio/alsa modules, so on internal/date it is parsed
+          # and then silently ignored. Label text, on the other hand, still
+          # goes through the tag parser (builder::node), so %{A3:...:} works.
+          # Left-click stays with the module's own date/date-alt toggle, which
+          # wraps this label in its own %{A1:...} area.
+          label = "%{A3:${calendarScript}:}%date%%{A}";
           label-foreground = "\${colors.primary}";
         };
 
