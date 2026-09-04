@@ -18,6 +18,9 @@
       # qemu-system-*) needs this. Without it QEMU silently falls back to
       # software emulation, or refuses outright.
       "kvm"
+      # USB serial devices (/dev/ttyUSB*, /dev/ttyACM*) are root:dialout 0660,
+      # so flashing/monitoring an ESP32 without sudo needs this.
+      "dialout"
     ];
 
     # packages = [pkgs.home-manager];
