@@ -12,7 +12,7 @@ in {
   # extra keybindings. Hosts opt into a profile instead, the same way they
   # opt into polybarModules / rofiModes.
   options.i3Profile = {
-    personal = mkEnableOption "gaming/personal workspaces (Steam, Discord, RuneLite, CS2)";
+    personal = mkEnableOption "gaming/personal workspaces (Steam, Discord, WhatsApp, RuneLite, CS2)";
     work = mkEnableOption "work workspaces (Mattermost, WhatsApp, Thunderbird, Remmina)";
     laptopKeys = mkEnableOption "brightness keys (needs a backlight)";
   };
@@ -36,7 +36,7 @@ in {
         set $ws5 "5:Postman"
         set $ws6 "6"
         set $ws7 "7:Steam"
-        set $ws8 "8:Bluetooth"
+        set $ws8 "8"
         set $ws9 "9:Discord"
         set $ws10 "10:Spotify"
 
@@ -46,15 +46,25 @@ in {
         # Steam's friends list, chats and news popups are separate top-level
         # windows sharing the main window's WM_CLASS ("steamwebhelper",
         # "steam"), and a chat's title is only the friend's name — there is no
-        # suffix to match on. So float every steam window and tile back just
-        # the main one, whose title is exactly "Steam". Later rules win, hence
-        # the ordering.
-        for_window [class="^[Ss]team$"] floating enable
+        # suffix to match on, so the title is the only discriminator: float
+        # everything except the main window, whose title is exactly "Steam".
+        #
+        # The float rule has to exclude "Steam" itself rather than being
+        # overridden by a later `floating disable`: i3 re-runs for_window on
+        # every title change, but each rule fires at most once per window.
+        # These CEF windows are mapped with the placeholder title "Steam" and
+        # only get their real one a moment later, so an unconditional float
+        # rule burns itself on the placeholder, the disable rule tiles the
+        # window, and the real title arrives with no rule left to re-float it.
+        # A rule that does not match the placeholder stays armed for it.
+        for_window [class="^[Ss]team$" title="^(?!Steam$)"] floating enable
         for_window [class="^[Ss]team$" title="^Steam$"] floating disable
 
         assign [class="net-runelite-client-RuneLite"] $ws4
         assign [class="discord"] $ws9
-        assign [class="^bluetuith$"] $ws8
+        # shares the chat workspace with Discord, the same way the work
+        # profile puts WhatsApp alongside Mattermost on its $ws9.
+        assign [class="whatsapp-electron"] $ws9
         assign [class="Postman"] $ws5
         assign [class="cs2"] $ws3
         assign [class="^Minecraft"] $ws3

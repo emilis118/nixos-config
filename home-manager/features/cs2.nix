@@ -64,4 +64,37 @@
   #   joystick subsystem (minor perf/startup win), -high raises priority,
   #   +fps_max 400 caps the engine.
   # ---------------------------------------------------------------------------
+
+  # ---------------------------------------------------------------------------
+  # ONE-TIME MANUAL STEP (also a Steam client setting, so also not expressible
+  # here):
+  #
+  #   Steam -> Settings -> Downloads -> uncheck "Enable Shader Pre-Caching"
+  #
+  # This is what caused the hour-long "processing Vulkan shaders" screen on
+  # every CS2 launch. It is Steam's fossilize pass, NOT the NVIDIA driver's own
+  # shader cache (that one is configured via __GL_SHADER_DISK_CACHE* in the
+  # host configuration.nix, and works fine).
+  #
+  # Why it never converged, from ~/.local/share/Steam/logs/shader_log.txt:
+  #   fossilize_replay only writes its progress marker
+  #   (shadercache/730/fozpipelinesv6/replay_cache.<hash>.foz) on CLEAN
+  #   COMPLETION. Skipping the screen kills the process, so an hour of work is
+  #   discarded and the next launch restarts from zero. The log showed one
+  #   "completed" line in a week and ~10 "Considering it killed" lines; the
+  #   replay_cache sat unchanged at 782 KB while steam_pipeline_cache.foz grew
+  #   to 5.7 GB. Letting it finish once does not fix it either - Valve keeps
+  #   pushing new crowd-sourced pipelines for CS2, so there is always fresh
+  #   work within days, and 5.7 GB of replay on a 1070 is roughly that hour.
+  #
+  # Nothing is lost by disabling it: on the NVIDIA proprietary driver the
+  # precompiled output largely lands in directories the game never reads
+  # (ValveSoftware/steam-for-linux#9803). CS2 compiles its pipelines at runtime
+  # into the driver cache instead, which persists because SKIP_CLEANUP stops
+  # the driver evicting it. Expect some shader hitching for the first session
+  # or two while that cache fills, then nothing.
+  #
+  # After disabling, ~/.local/share/Steam/steamapps/shadercache/ (~8.9 GB, of
+  # which 5.5 GB is CS2's fozpipelinesv6) can be deleted to reclaim the space.
+  # ---------------------------------------------------------------------------
 }
