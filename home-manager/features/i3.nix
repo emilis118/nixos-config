@@ -81,6 +81,15 @@ in {
             notification = false;
           }
           {
+            # X defaults put the screensaver timeout and the DPMS off
+            # timeout both at 600s, and xss-lock locks on screensaver
+            # activation - so the lock landed the moment the display
+            # blanked. Blank at 10min, lock at 15min.
+            command = "${pkgs.xorg.xset}/bin/xset s 900 900 dpms 600 600 600";
+            always = true;
+            notification = false;
+          }
+          {
             command = "picom";
             always = true;
           }
