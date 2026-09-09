@@ -56,6 +56,46 @@ with lib; let
     ${pkgs.betterlockscreen}/bin/betterlockscreen -l dim \
         || { [ -e "$flag" ] || ${pkgs.i3lock}/bin/i3lock -n -c 000000; }
   '';
+
+  # What xss-lock actually runs, so blanking and locking can happen at
+  # different times.
+  #
+  # X welds the two together: a DPMS transition forces a screensaver
+  # activation (SCREEN_SAVER_FORCER), xss-lock locks on that event, and no
+  # `xset s` value or `xset s off` changes it - measured, DPMS at 20s locks
+  # at 20s with the screensaver disabled. So the screen has always locked
+  # the moment it blanked, whatever the screensaver timeout said.
+  #
+  # Instead of fighting it: let DPMS blank at 10min and fire this, then sit
+  # on the lock until 15min of real idle. Coming back in between exits
+  # without locking, and the panel wakes on the same keypress.
+  #
+  # xss-lock also runs the locker for things that must lock *now* - suspend
+  # (marked by the sleep-lock fd) and `loginctl lock-session` from the rofi
+  # power menu (idle is ~0 when a human just asked for it). Both bypass the
+  # wait.
+  idleLock = pkgs.writeShellScriptBin "idle-lock" ''
+    export PATH=${makeBinPath [pkgs.xprintidle pkgs.coreutils]}:$PATH
+
+    # idle time at which we actually lock
+    lock_ms=900000
+    # above this, assume DPMS/screensaver fired us rather than a human. Well
+    # under the 600s blank so a slow clock read can't misclassify things.
+    min_idle_ms=300000
+
+    if [ -z "$XSS_SLEEP_LOCK_FD" ] && [ "$(xprintidle)" -ge "$min_idle_ms" ]; then
+        # blank-triggered: hold off until the lock deadline, bailing out the
+        # moment the user touches anything (idle drops back to ~0)
+        while :; do
+            idle=$(xprintidle)
+            [ "$idle" -ge "$lock_ms" ] && break
+            [ "$idle" -lt "$min_idle_ms" ] && exit 0
+            sleep 5
+        done
+    fi
+
+    exec ${lockScreen}/bin/lock-screen
+  '';
 in {
   imports = [./polybar.nix ./i3-profile.nix];
 
@@ -233,13 +273,14 @@ in {
   # lock signal is silently dropped.
   services.screen-locker = {
     enable = true;
-    lockCmd = "${lockScreen}/bin/lock-screen";
-    xautolock.enable = false; # idle locking comes from the X screensaver, not xautolock
-    # With xautolock off, the module points the X screensaver timeout at
-    # inactiveInterval (an ExecStartPre `xset s`), and xss-lock locks when the
-    # screensaver activates. Defaults are 10min/600s, i.e. exactly the DPMS
-    # blank time - which is why the lock used to land the moment the screen
-    # went dark. Blank at 10min (i3 startup `xset dpms`), lock at 15min.
+    # not lock-screen directly: idle-lock is what puts the 5min gap between
+    # the blank and the lock (see its definition above)
+    lockCmd = "${idleLock}/bin/idle-lock";
+    xautolock.enable = false; # idle-lock does the waiting, no second timer needed
+    # Keeps the module's ExecStartPre from resetting the screensaver timeout
+    # to its 10min default on every xss-lock (re)start. The screensaver is no
+    # longer what decides the lock time - idle-lock is - but leaving it below
+    # the blank would just fire the locker earlier for nothing.
     inactiveInterval = 15;
     xss-lock.screensaverCycle = 900;
     xss-lock.extraOptions = ["--transfer-sleep-lock"];
