@@ -81,11 +81,12 @@ in {
             notification = false;
           }
           {
-            # X defaults put the screensaver timeout and the DPMS off
-            # timeout both at 600s, and xss-lock locks on screensaver
-            # activation - so the lock landed the moment the display
-            # blanked. Blank at 10min, lock at 15min.
-            command = "${pkgs.xset}/bin/xset s 900 900 dpms 600 600 600";
+            # Blank the display at 10min. The screensaver timeout (which is
+            # what actually triggers the lock) is not set here - the
+            # screen-locker service below owns it via inactiveInterval,
+            # because its ExecStartPre re-runs `xset s` on every restart and
+            # would otherwise silently undo whatever we set here.
+            command = "${pkgs.xset}/bin/xset dpms 600 600 600";
             always = true;
             notification = false;
           }
@@ -233,7 +234,14 @@ in {
   services.screen-locker = {
     enable = true;
     lockCmd = "${lockScreen}/bin/lock-screen";
-    xautolock.enable = false; # no idle auto-lock, only explicit lock + suspend
+    xautolock.enable = false; # idle locking comes from the X screensaver, not xautolock
+    # With xautolock off, the module points the X screensaver timeout at
+    # inactiveInterval (an ExecStartPre `xset s`), and xss-lock locks when the
+    # screensaver activates. Defaults are 10min/600s, i.e. exactly the DPMS
+    # blank time - which is why the lock used to land the moment the screen
+    # went dark. Blank at 10min (i3 startup `xset dpms`), lock at 15min.
+    inactiveInterval = 15;
+    xss-lock.screensaverCycle = 900;
     xss-lock.extraOptions = ["--transfer-sleep-lock"];
   };
 
