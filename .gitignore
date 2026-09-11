@@ -1,4 +1,5 @@
 docs/
+scripts/
 
 # nix build output symlinks
 result
