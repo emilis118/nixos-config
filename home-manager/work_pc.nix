@@ -12,6 +12,8 @@
     ./features/marketplace-notifications
     ./features/thunderbird.nix
     ./features/cern-dfs.nix
+    ./features/bambu-studio.nix
+    ./features/freecad.nix
   ];
 
   # workspace names / window assignments live in features/i3-profile.nix
