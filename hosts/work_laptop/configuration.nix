@@ -15,6 +15,7 @@
     # tooling; also pulls in optional/performance.nix
     ./../shared/optional/laptop.nix
     ./../shared/optional/cern-lab.nix # /mnt/lab sshfs + davfs2
+    ./../shared/optional/eduvpn.nix # eduVPN client, for eduvpn.cern.ch
   ];
 
   # Networking
@@ -34,7 +35,8 @@
   # NordLynx, available but never automatic: this is a full tunnel, so while
   # it is up the /mnt/lab sshfs mount and anything else CERN-internal stops
   # resolving. Bring it up deliberately with `vpn up`, and `vpn down` before
-  # touching the lab.
+  # touching the lab — or before eduVPN, which is the tunnel that goes the
+  # other way and gets you *into* CERN.
   nordvpn.enable = true;
 
   # Fingerprint reader (enroll with `fprintd-enroll`). This was previously
