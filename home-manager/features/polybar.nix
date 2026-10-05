@@ -21,675 +21,730 @@ with lib; let
   # The toggle scripts run in polybar tail mode: they loop, re-rendering
   # every second (inotifywait timeout) and *immediately* when a click
   # handler touches the state file, so toggles react without polling lag.
-  cpuScript = pkgs.writeShellScript "polybar-cpu" ''
-    export PATH=${makeBinPath [pkgs.coreutils pkgs.gawk pkgs.gnugrep pkgs.inotify-tools]}:$PATH
+  cpuScript = lib.getExe (pkgs.writeShellApplication {
+    name = "polybar-cpu";
+    runtimeInputs = [pkgs.coreutils pkgs.gawk pkgs.gnugrep pkgs.inotify-tools];
+    bashOptions = [];
+    text = ''
+      STATE_FILE="/tmp/polybar_cpu_monitor_toggle"
 
-    STATE_FILE="/tmp/polybar_cpu_monitor_toggle"
+      if [ ! -f "$STATE_FILE" ]; then
+          echo "off" > "$STATE_FILE"
+      fi
 
-    if [ ! -f "$STATE_FILE" ]; then
-        echo "off" > "$STATE_FILE"
-    fi
+      if [ "$1" = "toggle" ]; then
+          if grep -q "on" "$STATE_FILE"; then
+              echo "off" > "$STATE_FILE"
+          else
+              echo "on" > "$STATE_FILE"
+          fi
+          exit 0
+      fi
 
-    if [ "$1" = "toggle" ]; then
-        if grep -q "on" "$STATE_FILE"; then
-            echo "off" > "$STATE_FILE"
-        else
-            echo "on" > "$STATE_FILE"
-        fi
-        exit 0
-    fi
+      # CPU package temperature; empty when no supported sensor is present.
+      #
+      # Probed by hwmon *driver name* rather than by device path, because the
+      # path is vendor-specific and this file is shared by every host: Intel
+      # exposes it as /sys/devices/platform/coretemp.N/... while AMD's k10temp
+      # hangs off PCI (/sys/devices/pci0000:00/0000:00:18.3/...), so the old
+      # coretemp glob matched nothing on amd-desktop. That did not just hide the
+      # temperature — an empty TEMP takes the same render branch as "toggled
+      # off", so the click handler silently stopped doing anything.
+      #
+      # temp1_input is the right input for both: "Package id 0" on coretemp,
+      # "Tctl" on k10temp. Other hwmon devices (asus, nvme, ...) are skipped.
+      TEMP_PATH=$(for h in /sys/class/hwmon/hwmon*; do
+          case "$(cat "$h/name" 2>/dev/null)" in
+              coretemp | k10temp)
+                  [ -e "$h/temp1_input" ] && echo "$h/temp1_input" && break
+                  ;;
+          esac
+      done)
 
-    # CPU package temperature; empty when no supported sensor is present.
-    #
-    # Probed by hwmon *driver name* rather than by device path, because the
-    # path is vendor-specific and this file is shared by every host: Intel
-    # exposes it as /sys/devices/platform/coretemp.N/... while AMD's k10temp
-    # hangs off PCI (/sys/devices/pci0000:00/0000:00:18.3/...), so the old
-    # coretemp glob matched nothing on amd-desktop. That did not just hide the
-    # temperature — an empty TEMP takes the same render branch as "toggled
-    # off", so the click handler silently stopped doing anything.
-    #
-    # temp1_input is the right input for both: "Package id 0" on coretemp,
-    # "Tctl" on k10temp. Other hwmon devices (asus, nvme, ...) are skipped.
-    TEMP_PATH=$(for h in /sys/class/hwmon/hwmon*; do
-        case "$(cat "$h/name" 2>/dev/null)" in
-            coretemp | k10temp)
-                [ -e "$h/temp1_input" ] && echo "$h/temp1_input" && break
-                ;;
-        esac
-    done)
+      prev_total=0
+      prev_idle=0
+      usage=0
 
-    prev_total=0
-    prev_idle=0
-    usage=0
+      # usage since the previous sample; keeps the last value when the
+      # window is too short to be meaningful
+      sample() {
+          read -r _ user nice system idle iowait irq softirq steal _ < /proc/stat
+          total=$((user + nice + system + idle + iowait + irq + softirq + steal))
+          idl=$((idle + iowait))
+          total_diff=$((total - prev_total))
+          if [ "$prev_total" -gt 0 ] && [ "$total_diff" -gt 0 ]; then
+              usage=$((100 * (total_diff - (idl - prev_idle)) / total_diff))
+          fi
+          prev_total=$total
+          prev_idle=$idl
+      }
 
-    # usage since the previous sample; keeps the last value when the
-    # window is too short to be meaningful
-    sample() {
-        read cpu user nice system idle iowait irq softirq steal guest < /proc/stat
-        total=$((user + nice + system + idle + iowait + irq + softirq + steal))
-        idl=$((idle + iowait))
-        total_diff=$((total - prev_total))
-        if [ "$prev_total" -gt 0 ] && [ "$total_diff" -gt 0 ]; then
-            usage=$((100 * (total_diff - (idl - prev_idle)) / total_diff))
-        fi
-        prev_total=$total
-        prev_idle=$idl
-    }
+      render() {
+          TEMP=""
+          [ -n "$TEMP_PATH" ] && TEMP=$(awk '{printf "%.0f", $1/1000}' "$TEMP_PATH" 2>/dev/null)
 
-    render() {
-        TEMP=""
-        [ -n "$TEMP_PATH" ] && TEMP=$(awk '{printf "%.0f", $1/1000}' "$TEMP_PATH" 2>/dev/null)
+          if grep -q "off" "$STATE_FILE" || [ -z "$TEMP" ]; then
+              echo "%{F${yellow}}CPU%{F-} ''${usage}%"
+              return
+          fi
 
-        if grep -q "off" "$STATE_FILE" || [ -z "$TEMP" ]; then
-            echo "%{F${yellow}}CPU%{F-} ''${usage}%"
-            return
-        fi
+          if [ "$TEMP" -gt "80" ]; then
+              echo "%{F${yellow}}CPU%{F-} ''${usage}% %{F${red}}''${TEMP}%{F-}°C"
+          else
+              echo "%{F${yellow}}CPU%{F-} ''${usage}% ''${TEMP}°C"
+          fi
+      }
 
-        if [ "$TEMP" -gt "80" ]; then
-            echo "%{F${yellow}}CPU%{F-} ''${usage}% %{F${red}}''${TEMP}%{F-}°C"
-        else
-            echo "%{F${yellow}}CPU%{F-} ''${usage}% ''${TEMP}°C"
-        fi
-    }
+      sample
+      sleep 0.3
+      sample
+      render
 
-    sample
-    sleep 0.3
-    sample
-    render
+      while :; do
+          if inotifywait -qq -t 1 -e close_write "$STATE_FILE" 2>/dev/null; then
+              render # toggle clicked: redraw right away with cached usage
+          else
+              sample
+              render
+          fi
+      done
+    '';
+  });
 
-    while :; do
-        if inotifywait -qq -t 1 -e close_write "$STATE_FILE" 2>/dev/null; then
-            render # toggle clicked: redraw right away with cached usage
-        else
-            sample
-            render
-        fi
-    done
-  '';
+  memoryScript = lib.getExe (pkgs.writeShellApplication {
+    name = "polybar-memory";
+    runtimeInputs = [pkgs.coreutils pkgs.gawk pkgs.gnugrep pkgs.procps pkgs.inotify-tools];
+    bashOptions = [];
+    text = ''
+      STATE_FILE="/tmp/polybar_memory_monitor_toggle"
 
-  memoryScript = pkgs.writeShellScript "polybar-memory" ''
-    export PATH=${makeBinPath [pkgs.coreutils pkgs.gawk pkgs.gnugrep pkgs.procps pkgs.inotify-tools]}:$PATH
+      if [ ! -f "$STATE_FILE" ]; then
+          echo "1" > "$STATE_FILE"
+      fi
 
-    STATE_FILE="/tmp/polybar_memory_monitor_toggle"
+      if [ "$1" = "toggle" ]; then
+          if grep -q "1" "$STATE_FILE"; then
+              echo "2" > "$STATE_FILE"
+          elif grep -q "2" "$STATE_FILE"; then
+              echo "3" > "$STATE_FILE"
+          else
+              echo "1" > "$STATE_FILE"
+          fi
+          exit 0
+      fi
 
-    if [ ! -f "$STATE_FILE" ]; then
-        echo "1" > "$STATE_FILE"
-    fi
+      render() {
+          used=$(free | awk '/^Mem/ {printf("%.1f", $3/1024/1024)}')
+          total=$(free | awk '/^Mem/ { printf("%.1f", $2/1024/1024) }')
 
-    if [ "$1" = "toggle" ]; then
-        if grep -q "1" "$STATE_FILE"; then
-            echo "2" > "$STATE_FILE"
-        elif grep -q "2" "$STATE_FILE"; then
-            echo "3" > "$STATE_FILE"
-        else
-            echo "1" > "$STATE_FILE"
-        fi
-        exit 0
-    fi
+          if grep -q "1" "$STATE_FILE"; then
+              percentage=$(awk "BEGIN {printf \"%.0f\n\", $used/$total*100}")
+              echo "%{F${yellow}}RAM%{F-} ''${percentage} %"
+          elif grep -q "2" "$STATE_FILE"; then
+              echo "%{F${yellow}}RAM%{F-} ''${used}/''${total} GB"
+          elif grep -q "3" "$STATE_FILE"; then
+              percentage=$(awk "BEGIN {printf \"%.0f\n\", $used/$total*100}")
+              echo "%{F${yellow}}RAM%{F-} ''${percentage}% ''${used}/''${total} GB"
+          else
+              echo "SOMETHING WRONG WITH RAM"
+          fi
+      }
 
-    render() {
-        used=$(free | awk '/^Mem/ {printf("%.1f", $3/1024/1024)}')
-        total=$(free | awk '/^Mem/ { printf("%.1f", $2/1024/1024) }')
-
-        if grep -q "1" "$STATE_FILE"; then
-            percentage=$(awk "BEGIN {printf \"%.0f\n\", $used/$total*100}")
-            echo "%{F${yellow}}RAM%{F-} ''${percentage} %"
-        elif grep -q "2" "$STATE_FILE"; then
-            echo "%{F${yellow}}RAM%{F-} ''${used}/''${total} GB"
-        elif grep -q "3" "$STATE_FILE"; then
-            percentage=$(awk "BEGIN {printf \"%.0f\n\", $used/$total*100}")
-            echo "%{F${yellow}}RAM%{F-} ''${percentage}% ''${used}/''${total} GB"
-        else
-            echo "SOMETHING WRONG WITH RAM"
-        fi
-    }
-
-    render
-    while :; do
-        inotifywait -qq -t 1 -e close_write "$STATE_FILE" 2>/dev/null
-        render
-    done
-  '';
+      render
+      while :; do
+          inotifywait -qq -t 1 -e close_write "$STATE_FILE" 2>/dev/null
+          render
+      done
+    '';
+  });
 
   # nvidia-smi comes from the system profile on hosts with the nvidia driver
-  gpuScript = pkgs.writeShellScript "polybar-gpu" ''
-    export PATH=${makeBinPath [pkgs.coreutils pkgs.gnugrep pkgs.inotify-tools]}:/run/current-system/sw/bin:$PATH
+  gpuScript = lib.getExe (pkgs.writeShellApplication {
+    name = "polybar-gpu";
+    runtimeInputs = [pkgs.coreutils pkgs.gnugrep pkgs.inotify-tools "/run/current-system/sw"];
+    bashOptions = [];
+    text = ''
+      if ! command -v nvidia-smi >/dev/null 2>&1; then
+          exit 0
+      fi
 
-    if ! command -v nvidia-smi >/dev/null 2>&1; then
-        exit 0
-    fi
+      STATE_FILE="/tmp/polybar_gpu_monitor_toggle"
 
-    STATE_FILE="/tmp/polybar_gpu_monitor_toggle"
+      if [ ! -f "$STATE_FILE" ]; then
+          echo "off" > "$STATE_FILE"
+      fi
 
-    if [ ! -f "$STATE_FILE" ]; then
-        echo "off" > "$STATE_FILE"
-    fi
+      if [ "$1" = "toggle" ]; then
+          if grep -q "on" "$STATE_FILE"; then
+              echo "off" > "$STATE_FILE"
+          else
+              echo "on" > "$STATE_FILE"
+          fi
+          exit 0
+      fi
 
-    if [ "$1" = "toggle" ]; then
-        if grep -q "on" "$STATE_FILE"; then
-            echo "off" > "$STATE_FILE"
-        else
-            echo "on" > "$STATE_FILE"
-        fi
-        exit 0
-    fi
+      render() {
+          if grep -q "off" "$STATE_FILE"; then
+              LOAD=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits)
+              echo "%{F${yellow}}GPU%{F-} ''${LOAD}%"
+              return
+          fi
 
-    render() {
-        if grep -q "off" "$STATE_FILE"; then
-            LOAD=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits)
-            echo "%{F${yellow}}GPU%{F-} ''${LOAD}%"
-            return
-        fi
+          TEMP=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits)
+          MEM_USED=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits)
+          MEM_TOTAL=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits)
+          LOAD=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits)
 
-        TEMP=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits)
-        MEM_USED=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits)
-        MEM_TOTAL=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits)
-        LOAD=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits)
+          if [ "''${TEMP}" -gt "70" ]; then
+              echo "%{F${yellow}}GPU%{F-} ''${LOAD}% %{F${red}}''${TEMP}%{F-}°C ''${MEM_USED}/''${MEM_TOTAL} MB"
+          else
+              echo "%{F${yellow}}GPU%{F-} ''${LOAD}% ''${TEMP}°C ''${MEM_USED}/''${MEM_TOTAL} MB"
+          fi
+      }
 
-        if [ "''${TEMP}" -gt "70" ]; then
-            echo "%{F${yellow}}GPU%{F-} ''${LOAD}% %{F${red}}''${TEMP}%{F-}°C ''${MEM_USED}/''${MEM_TOTAL} MB"
-        else
-            echo "%{F${yellow}}GPU%{F-} ''${LOAD}% ''${TEMP}°C ''${MEM_USED}/''${MEM_TOTAL} MB"
-        fi
-    }
-
-    render
-    while :; do
-        inotifywait -qq -t 1 -e close_write "$STATE_FILE" 2>/dev/null
-        render
-    done
-  '';
+      render
+      while :; do
+          inotifywait -qq -t 1 -e close_write "$STATE_FILE" 2>/dev/null
+          render
+      done
+    '';
+  });
 
   # polybar's internal/battery can't swap labels on a click, and its
   # %consumption% only reaches the discharging label, so this reads sysfs
   # directly: power is reported while charging too, and left-click cycles
   # percentage -> + wattage -> + time (to empty, or to full while charging).
-  batteryScript = pkgs.writeShellScript "polybar-battery" ''
-    export PATH=${makeBinPath [pkgs.coreutils pkgs.gawk pkgs.inotify-tools]}:$PATH
+  batteryScript = lib.getExe (pkgs.writeShellApplication {
+    name = "polybar-battery";
+    runtimeInputs = [pkgs.coreutils pkgs.gawk pkgs.inotify-tools];
+    bashOptions = [];
+    text = ''
+      STATE_FILE="/tmp/polybar_battery_toggle"
 
-    STATE_FILE="/tmp/polybar_battery_toggle"
+      [ -f "$STATE_FILE" ] || echo "1" > "$STATE_FILE"
 
-    [ -f "$STATE_FILE" ] || echo "1" > "$STATE_FILE"
+      if [ "$1" = "toggle" ]; then
+          case "$(cat "$STATE_FILE")" in
+              1) echo "2" > "$STATE_FILE" ;;
+              2) echo "3" > "$STATE_FILE" ;;
+              *) echo "1" > "$STATE_FILE" ;;
+          esac
+          exit 0
+      fi
 
-    if [ "$1" = "toggle" ]; then
-        case "$(cat "$STATE_FILE")" in
-            1) echo "2" > "$STATE_FILE" ;;
-            2) echo "3" > "$STATE_FILE" ;;
-            *) echo "1" > "$STATE_FILE" ;;
-        esac
-        exit 0
-    fi
+      BAT=$(for d in /sys/class/power_supply/BAT*; do
+          [ -e "$d/capacity" ] && echo "$d" && break
+      done)
+      [ -n "$BAT" ] || exit 0
 
-    BAT=$(for d in /sys/class/power_supply/BAT*; do
-        [ -e "$d/capacity" ] && echo "$d" && break
-    done)
-    [ -n "$BAT" ] || exit 0
+      # µW when the driver reports power, else µA × µV
+      watts() {
+          if [ -r "$BAT/power_now" ]; then
+              awk '{w = $1 / 1000000; printf "%.1f", (w < 0 ? -w : w)}' "$BAT/power_now"
+          elif [ -r "$BAT/current_now" ] && [ -r "$BAT/voltage_now" ]; then
+              awk 'NR==1 {c = $1} NR==2 {v = $1}
+                   END {w = c * v / 1000000000000; printf "%.1f", (w < 0 ? -w : w)}' \
+                  "$BAT/current_now" "$BAT/voltage_now"
+          else
+              echo "0.0"
+          fi
+      }
 
-    # µW when the driver reports power, else µA × µV
-    watts() {
-        if [ -r "$BAT/power_now" ]; then
-            awk '{w = $1 / 1000000; printf "%.1f", (w < 0 ? -w : w)}' "$BAT/power_now"
-        elif [ -r "$BAT/current_now" ] && [ -r "$BAT/voltage_now" ]; then
-            awk 'NR==1 {c = $1} NR==2 {v = $1}
-                 END {w = c * v / 1000000000000; printf "%.1f", (w < 0 ? -w : w)}' \
-                "$BAT/current_now" "$BAT/voltage_now"
-        else
-            echo "0.0"
-        fi
-    }
+      # reservoir / rate in matching units: Wh over W, or Ah over A
+      remaining() {
+          if [ -r "$BAT/energy_now" ] && [ -r "$BAT/energy_full" ] && [ -r "$BAT/power_now" ]; then
+              now=$(cat "$BAT/energy_now"); full=$(cat "$BAT/energy_full"); rate=$(cat "$BAT/power_now")
+          elif [ -r "$BAT/charge_now" ] && [ -r "$BAT/charge_full" ] && [ -r "$BAT/current_now" ]; then
+              now=$(cat "$BAT/charge_now"); full=$(cat "$BAT/charge_full"); rate=$(cat "$BAT/current_now")
+          else
+              return 1
+          fi
 
-    # reservoir / rate in matching units: Wh over W, or Ah over A
-    remaining() {
-        if [ -r "$BAT/energy_now" ] && [ -r "$BAT/energy_full" ] && [ -r "$BAT/power_now" ]; then
-            now=$(cat "$BAT/energy_now"); full=$(cat "$BAT/energy_full"); rate=$(cat "$BAT/power_now")
-        elif [ -r "$BAT/charge_now" ] && [ -r "$BAT/charge_full" ] && [ -r "$BAT/current_now" ]; then
-            now=$(cat "$BAT/charge_now"); full=$(cat "$BAT/charge_full"); rate=$(cat "$BAT/current_now")
-        else
-            return 1
-        fi
+          [ "$1" = "Charging" ] && now=$((full - now))
 
-        [ "$1" = "Charging" ] && now=$((full - now))
+          awk -v n="$now" -v r="$rate" 'BEGIN {
+              if (r < 0) r = -r
+              if (r == 0 || n <= 0) exit 1
+              m = int(n / r * 60 + 0.5)
+              printf "%d:%02d", int(m / 60), m % 60
+          }'
+      }
 
-        awk -v n="$now" -v r="$rate" 'BEGIN {
-            if (r < 0) r = -r
-            if (r == 0 || n <= 0) exit 1
-            m = int(n / r * 60 + 0.5)
-            printf "%d:%02d", int(m / 60), m % 60
-        }'
-    }
+      icon() {
+          [ "$2" = "Charging" ] && { echo "󰂄"; return; }
+          case $(( ($1 + 5) / 10 )) in
+              0 | 1) echo "󰁺" ;;
+              2) echo "󰁻" ;;
+              3) echo "󰁼" ;;
+              4) echo "󰁽" ;;
+              5) echo "󰁾" ;;
+              6) echo "󰁿" ;;
+              7) echo "󰂀" ;;
+              8) echo "󰂁" ;;
+              9) echo "󰂂" ;;
+              *) echo "󰁹" ;;
+          esac
+      }
 
-    icon() {
-        [ "$2" = "Charging" ] && { echo "󰂄"; return; }
-        case $(( ($1 + 5) / 10 )) in
-            0 | 1) echo "󰁺" ;;
-            2) echo "󰁻" ;;
-            3) echo "󰁼" ;;
-            4) echo "󰁽" ;;
-            5) echo "󰁾" ;;
-            6) echo "󰁿" ;;
-            7) echo "󰂀" ;;
-            8) echo "󰂁" ;;
-            9) echo "󰂂" ;;
-            *) echo "󰁹" ;;
-        esac
-    }
+      render() {
+          cap=$(cat "$BAT/capacity")
+          state=$(cat "$BAT/status")
+          view=$(cat "$STATE_FILE")
 
-    render() {
-        cap=$(cat "$BAT/capacity")
-        state=$(cat "$BAT/status")
-        view=$(cat "$STATE_FILE")
+          # "Not charging" is a plugged-in battery held at its charge limit
+          if [ "$state" = "Full" ] || { [ "$cap" -ge 99 ] && [ "$state" != "Discharging" ]; }; then
+              echo "%{F${yellow}}󰂄%{F-} Full"
+              return
+          fi
 
-        # "Not charging" is a plugged-in battery held at its charge limit
-        if [ "$state" = "Full" ] || { [ "$cap" -ge 99 ] && [ "$state" != "Discharging" ]; }; then
-            echo "%{F${yellow}}󰂄%{F-} Full"
-            return
-        fi
+          ico=$(icon "$cap" "$state")
+          if [ "$state" = "Discharging" ] && [ "$cap" -le 15 ]; then
+              out="%{F${red}}''${ico} ''${cap}%%{F-}"
+          else
+              out="%{F${yellow}}''${ico}%{F-} ''${cap}%"
+          fi
 
-        ico=$(icon "$cap" "$state")
-        if [ "$state" = "Discharging" ] && [ "$cap" -le 15 ]; then
-            out="%{F${red}}''${ico} ''${cap}%%{F-}"
-        else
-            out="%{F${yellow}}''${ico}%{F-} ''${cap}%"
-        fi
+          [ "$view" = "1" ] || out="$out $(watts) W"
+          if [ "$view" = "3" ]; then
+              time_left=$(remaining "$state") && out="$out $time_left"
+          fi
 
-        [ "$view" = "1" ] || out="$out $(watts) W"
-        if [ "$view" = "3" ]; then
-            time_left=$(remaining "$state") && out="$out $time_left"
-        fi
+          echo "$out"
+      }
 
-        echo "$out"
-    }
+      render
+      while :; do
+          inotifywait -qq -t 5 -e close_write "$STATE_FILE" 2>/dev/null
+          render
+      done
+    '';
+  });
 
-    render
-    while :; do
-        inotifywait -qq -t 5 -e close_write "$STATE_FILE" 2>/dev/null
-        render
-    done
-  '';
+  ethScript = lib.getExe (pkgs.writeShellApplication {
+    name = "polybar-eth";
+    runtimeInputs = [pkgs.coreutils pkgs.gawk pkgs.gnugrep pkgs.iproute2 pkgs.inotify-tools];
+    bashOptions = [];
+    text = ''
+      STATE_FILE="/tmp/polybar_eth_toggle"
 
-  ethScript = pkgs.writeShellScript "polybar-eth" ''
-    export PATH=${makeBinPath [pkgs.coreutils pkgs.gawk pkgs.gnugrep pkgs.iproute2 pkgs.inotify-tools]}:$PATH
+      if [ ! -f "$STATE_FILE" ]; then
+          echo "1" > "$STATE_FILE"
+      fi
 
-    STATE_FILE="/tmp/polybar_eth_toggle"
+      if [ "$1" = "toggle" ]; then
+          if grep -q "1" "$STATE_FILE"; then
+              echo "2" > "$STATE_FILE"
+          else
+              echo "1" > "$STATE_FILE"
+          fi
+          exit 0
+      fi
 
-    if [ ! -f "$STATE_FILE" ]; then
-        echo "1" > "$STATE_FILE"
-    fi
+      render() {
+          # Find the first wired interface that is up
+          for path in /sys/class/net/en* /sys/class/net/eth*; do
+              [ -e "$path" ] || continue
+              dev="''${path##*/}"
+              if [ "$(cat "$path/operstate")" = "up" ]; then
+                  if grep -q "2" "$STATE_FILE"; then
+                      ip4=$(ip -o -4 addr show dev "$dev" | awk '{print $4}' | cut -d/ -f1 | head -1)
+                      echo "%{F${yellow}}󰈁%{F-} ''${ip4}"
+                  else
+                      echo "%{F${yellow}}󰈁%{F-}"
+                  fi
+                  return
+              fi
+          done
 
-    if [ "$1" = "toggle" ]; then
-        if grep -q "1" "$STATE_FILE"; then
-            echo "2" > "$STATE_FILE"
-        else
-            echo "1" > "$STATE_FILE"
-        fi
-        exit 0
-    fi
+          # No wired connection: show nothing
+          echo ""
+      }
 
-    render() {
-        # Find the first wired interface that is up
-        for path in /sys/class/net/en* /sys/class/net/eth*; do
-            [ -e "$path" ] || continue
-            dev="''${path##*/}"
-            if [ "$(cat "$path/operstate")" = "up" ]; then
-                if grep -q "2" "$STATE_FILE"; then
-                    ip4=$(ip -o -4 addr show dev "$dev" | awk '{print $4}' | cut -d/ -f1 | head -1)
-                    echo "%{F${yellow}}󰈁%{F-} ''${ip4}"
-                else
-                    echo "%{F${yellow}}󰈁%{F-}"
-                fi
-                return
-            fi
-        done
-
-        # No wired connection: show nothing
-        echo ""
-    }
-
-    render
-    while :; do
-        inotifywait -qq -t 1 -e close_write "$STATE_FILE" 2>/dev/null
-        render
-    done
-  '';
+      render
+      while :; do
+          inotifywait -qq -t 1 -e close_write "$STATE_FILE" 2>/dev/null
+          render
+      done
+    '';
+  });
 
   # Icon only by default, right-click reveals the network name — the eth
   # module's hidable IP, for wifi. A custom script rather than
   # internal/network because that one can't switch labels on a click.
-  wlanScript = pkgs.writeShellScript "polybar-wlan" ''
-    export PATH=${makeBinPath [pkgs.coreutils pkgs.gnugrep pkgs.networkmanager pkgs.inotify-tools]}:$PATH
+  wlanScript = lib.getExe (pkgs.writeShellApplication {
+    name = "polybar-wlan";
+    runtimeInputs = [pkgs.coreutils pkgs.gnugrep pkgs.networkmanager pkgs.inotify-tools];
+    bashOptions = [];
+    text = ''
+      STATE_FILE="/tmp/polybar_wlan_toggle"
 
-    STATE_FILE="/tmp/polybar_wlan_toggle"
+      if [ ! -f "$STATE_FILE" ]; then
+          echo "1" > "$STATE_FILE"
+      fi
 
-    if [ ! -f "$STATE_FILE" ]; then
-        echo "1" > "$STATE_FILE"
-    fi
+      if [ "$1" = "toggle" ]; then
+          if grep -q "1" "$STATE_FILE"; then
+              echo "2" > "$STATE_FILE"
+          else
+              echo "1" > "$STATE_FILE"
+          fi
+          exit 0
+      fi
 
-    if [ "$1" = "toggle" ]; then
-        if grep -q "1" "$STATE_FILE"; then
-            echo "2" > "$STATE_FILE"
-        else
-            echo "1" > "$STATE_FILE"
-        fi
-        exit 0
-    fi
+      render() {
+          found=""
+          for path in /sys/class/net/*/wireless; do
+              [ -e "$path" ] || continue
+              dev=$(basename "$(dirname "$path")")
+              found=1
+              if [ "$(cat "/sys/class/net/$dev/operstate")" = "up" ]; then
+                  if grep -q "2" "$STATE_FILE"; then
+                      # only pay for nmcli when the name is on screen
+                      ssid=$(nmcli -t -f GENERAL.CONNECTION device show "$dev" 2>/dev/null | cut -d: -f2-)
+                      echo "%{F${yellow}}󰖩%{F-} ''${ssid}"
+                  else
+                      echo "%{F${yellow}}󰖩%{F-}"
+                  fi
+                  return
+              fi
+          done
 
-    render() {
-        found=""
-        for path in /sys/class/net/*/wireless; do
-            [ -e "$path" ] || continue
-            dev=$(basename "$(dirname "$path")")
-            found=1
-            if [ "$(cat "/sys/class/net/$dev/operstate")" = "up" ]; then
-                if grep -q "2" "$STATE_FILE"; then
-                    # only pay for nmcli when the name is on screen
-                    ssid=$(nmcli -t -f GENERAL.CONNECTION device show "$dev" 2>/dev/null | cut -d: -f2-)
-                    echo "%{F${yellow}}󰖩%{F-} ''${ssid}"
-                else
-                    echo "%{F${yellow}}󰖩%{F-}"
-                fi
-                return
-            fi
-        done
+          # radio present but down: dimmed off icon. No radio at all: nothing
+          if [ -n "$found" ]; then
+              echo "%{F${dim}}󰖪%{F-}"
+          else
+              echo ""
+          fi
+      }
 
-        # radio present but down: dimmed off icon. No radio at all: nothing
-        if [ -n "$found" ]; then
-            echo "%{F${dim}}󰖪%{F-}"
-        else
-            echo ""
-        fi
-    }
+      render
+      while :; do
+          inotifywait -qq -t 1 -e close_write "$STATE_FILE" 2>/dev/null
+          render
+      done
+    '';
+  });
 
-    render
-    while :; do
-        inotifywait -qq -t 1 -e close_write "$STATE_FILE" 2>/dev/null
-        render
-    done
-  '';
+  bluetoothScript = lib.getExe (pkgs.writeShellApplication {
+    name = "polybar-bluetooth";
+    runtimeInputs = [pkgs.bluez pkgs.coreutils pkgs.gnugrep pkgs.gnused pkgs.inotify-tools];
+    bashOptions = [];
+    text = ''
+      # icon + battery by default; right-click toggles showing the device name
+      STATE_FILE="/tmp/polybar_bluetooth_toggle"
 
-  bluetoothScript = pkgs.writeShellScript "polybar-bluetooth" ''
-    export PATH=${makeBinPath [pkgs.bluez pkgs.coreutils pkgs.gnugrep pkgs.gnused pkgs.inotify-tools]}:$PATH
+      if [ ! -f "$STATE_FILE" ]; then
+          echo "off" > "$STATE_FILE"
+      fi
 
-    # icon + battery by default; right-click toggles showing the device name
-    STATE_FILE="/tmp/polybar_bluetooth_toggle"
+      if [ "$1" = "toggle" ]; then
+          if grep -q "on" "$STATE_FILE"; then
+              echo "off" > "$STATE_FILE"
+          else
+              echo "on" > "$STATE_FILE"
+          fi
+          exit 0
+      fi
 
-    if [ ! -f "$STATE_FILE" ]; then
-        echo "off" > "$STATE_FILE"
-    fi
+      render() {
+      # No adapter or powered off: dimmed off icon
+      if ! bluetoothctl show 2>/dev/null | grep -q "Powered: yes"; then
+          echo "%{F${dim}}󰂲%{F-}"
+          return
+      fi
 
-    if [ "$1" = "toggle" ]; then
-        if grep -q "on" "$STATE_FILE"; then
-            echo "off" > "$STATE_FILE"
-        else
-            echo "on" > "$STATE_FILE"
-        fi
-        exit 0
-    fi
+      connected=$(bluetoothctl devices Connected 2>/dev/null)
+      if [ -z "$connected" ]; then
+          echo "%{F${dim}}󰂯%{F-}"
+          return
+      fi
 
-    render() {
-    # No adapter or powered off: dimmed off icon
-    if ! bluetoothctl show 2>/dev/null | grep -q "Powered: yes"; then
-        echo "%{F${dim}}󰂲%{F-}"
-        return
-    fi
+      count=$(printf '%s\n' "$connected" | grep -c .)
+      line=$(printf '%s\n' "$connected" | head -1)
+      mac=$(printf '%s' "$line" | cut -d' ' -f2)
+      name=$(printf '%s' "$line" | cut -d' ' -f3-)
+      batt=$(bluetoothctl info "$mac" 2>/dev/null | sed -n 's/.*Battery Percentage.*(\([0-9]*\)).*/\1/p')
 
-    connected=$(bluetoothctl devices Connected 2>/dev/null)
-    if [ -z "$connected" ]; then
-        echo "%{F${dim}}󰂯%{F-}"
-        return
-    fi
+      out="%{F${yellow}}󰂱%{F-}"
+      if grep -q "on" "$STATE_FILE"; then
+          out="$out $name"
+      fi
+      if [ -n "$batt" ]; then
+          if [ "$batt" -le 20 ]; then
+              out="$out %{F${red}}$batt%%{F-}"
+          else
+              out="$out $batt%"
+          fi
+      fi
+      [ "$count" -gt 1 ] && out="$out +$((count - 1))"
+      echo "$out"
+      }
 
-    count=$(printf '%s\n' "$connected" | grep -c .)
-    line=$(printf '%s\n' "$connected" | head -1)
-    mac=$(printf '%s' "$line" | cut -d' ' -f2)
-    name=$(printf '%s' "$line" | cut -d' ' -f3-)
-    batt=$(bluetoothctl info "$mac" 2>/dev/null | sed -n 's/.*Battery Percentage.*(\([0-9]*\)).*/\1/p')
+      render
+      while :; do
+          inotifywait -qq -t 5 -e close_write "$STATE_FILE" 2>/dev/null
+          render
+      done
+    '';
+  });
 
-    out="%{F${yellow}}󰂱%{F-}"
-    if grep -q "on" "$STATE_FILE"; then
-        out="$out $name"
-    fi
-    if [ -n "$batt" ]; then
-        if [ "$batt" -le 20 ]; then
-            out="$out %{F${red}}$batt%%{F-}"
-        else
-            out="$out $batt%"
-        fi
-    fi
-    [ "$count" -gt 1 ] && out="$out +$((count - 1))"
-    echo "$out"
-    }
+  failedUnitsScript = lib.getExe (pkgs.writeShellApplication {
+    name = "polybar-failed-units";
+    runtimeInputs = [pkgs.systemd pkgs.gnugrep];
+    bashOptions = [];
+    text = ''
+      sys=$(systemctl --failed --no-legend --plain 2>/dev/null | grep -c .)
+      usr=$(systemctl --user --failed --no-legend --plain 2>/dev/null | grep -c .)
+      total=$((sys + usr))
 
-    render
-    while :; do
-        inotifywait -qq -t 5 -e close_write "$STATE_FILE" 2>/dev/null
-        render
-    done
-  '';
+      # Hidden while everything is healthy
+      if [ "$total" -gt 0 ]; then
+          echo "%{F${red}}󰀦 $total%{F-}"
+      fi
+    '';
+  });
 
-  failedUnitsScript = pkgs.writeShellScript "polybar-failed-units" ''
-    export PATH=${makeBinPath [pkgs.systemd pkgs.gnugrep]}:$PATH
-
-    sys=$(systemctl --failed --no-legend --plain 2>/dev/null | grep -c .)
-    usr=$(systemctl --user --failed --no-legend --plain 2>/dev/null | grep -c .)
-    total=$((sys + usr))
-
-    # Hidden while everything is healthy
-    if [ "$total" -gt 0 ]; then
-        echo "%{F${red}}󰀦 $total%{F-}"
-    fi
-  '';
-
-  failedUnitsView = pkgs.writeShellScript "polybar-failed-units-view" ''
-    exec ${pkgs.alacritty}/bin/alacritty --hold -e sh -c \
-      'systemctl --failed; echo; systemctl --user --failed'
-  '';
+  failedUnitsView = lib.getExe (pkgs.writeShellApplication {
+    name = "polybar-failed-units-view";
+    bashOptions = [];
+    text = ''
+      exec ${pkgs.alacritty}/bin/alacritty --hold -e sh -c \
+        'systemctl --failed; echo; systemctl --user --failed'
+    '';
+  });
 
   # There is no public text API for LHC Page 1, only the vistar screenshots
   # refreshed about once a minute, so the module is a launcher: click fetches
   # the current Page 1 image, right-click opens the live vistar page.
-  lhcView = pkgs.writeShellScript "polybar-lhc-view" ''
-    export PATH=${makeBinPath [pkgs.curl pkgs.feh]}:$PATH
-    curl -sf -m 10 -o /tmp/lhc1.png https://vistar-capture.s3.cern.ch/lhc1.png \
-      && exec feh --title "LHC Page 1" /tmp/lhc1.png
-  '';
+  lhcView = lib.getExe (pkgs.writeShellApplication {
+    name = "polybar-lhc-view";
+    runtimeInputs = [pkgs.curl pkgs.feh];
+    bashOptions = [];
+    text = ''
+      curl -sf -m 10 -o /tmp/lhc1.png https://vistar-capture.s3.cern.ch/lhc1.png \
+        && exec feh --title "LHC Page 1" /tmp/lhc1.png
+    '';
+  });
 
-  lhcWeb = pkgs.writeShellScript "polybar-lhc-web" ''
-    export PATH=${config.home.profileDirectory}/bin:$PATH
-    exec firefox "https://op-webtools.web.cern.ch/vistar/vistars.php?usr=LHC1"
-  '';
+  lhcWeb = lib.getExe (pkgs.writeShellApplication {
+    name = "polybar-lhc-web";
+    runtimeInputs = [config.home.profileDirectory];
+    bashOptions = [];
+    text = ''
+      exec firefox "https://op-webtools.web.cern.ch/vistar/vistars.php?usr=LHC1"
+    '';
+  });
 
   # adi1090x-style applet: one row of icon buttons popped out under the
   # click. Loops so volume/mute clicks keep the menu open; Escape or the
   # mixer button leave.
-  volumeMenuScript = pkgs.writeShellScript "polybar-volume-menu" ''
-    export PATH=${makeBinPath [pkgs.pamixer pkgs.xdotool pkgs.i3 pkgs.jq pkgs.coreutils]}:${config.home.profileDirectory}/bin:$PATH
+  volumeMenuScript = lib.getExe (pkgs.writeShellApplication {
+    name = "polybar-volume-menu";
+    runtimeInputs = [pkgs.pamixer pkgs.xdotool pkgs.i3 pkgs.jq pkgs.coreutils config.home.profileDirectory];
+    bashOptions = [];
+    text = ''
+      theme=${../../dotfiles/rofi/volume-applet.rasi}
+      sel=2 # start on the mute button
 
-    theme=${../../dotfiles/rofi/volume-applet.rasi}
-    sel=2 # start on the mute button
+      # Pin the window's top-right corner under the pointer: find the monitor
+      # containing it and the pointer's offset from that monitor's right edge.
+      # (rofi's own -m -3 "place at mouse" puts the window off-screen in 2.0.
+      # Don't use xrandr here: any query, even --listactivemonitors, makes the
+      # X server re-probe the outputs — 1-2s of the popup feeling stuck. i3
+      # already knows the layout and answers over IPC in milliseconds.)
+      eval "$(xdotool getmouselocation --shell)" # sets X and Y
+      pos=$(i3-msg -t get_outputs | jq -r --argjson mx "$X" --argjson my "$Y" '
+          first(.[] | select(.active
+              and .rect.x <= $mx and $mx < .rect.x + .rect.width
+              and .rect.y <= $my and $my < .rect.y + .rect.height))
+          | "\(.name) \($mx - .rect.x - .rect.width)"')
+      place=()
+      [ -n "$pos" ] && place=(-m "''${pos% *}" -theme-str "window { x-offset: ''${pos#* }px; }")
 
-    # Pin the window's top-right corner under the pointer: find the monitor
-    # containing it and the pointer's offset from that monitor's right edge.
-    # (rofi's own -m -3 "place at mouse" puts the window off-screen in 2.0.
-    # Don't use xrandr here: any query, even --listactivemonitors, makes the
-    # X server re-probe the outputs — 1-2s of the popup feeling stuck. i3
-    # already knows the layout and answers over IPC in milliseconds.)
-    eval "$(xdotool getmouselocation --shell)" # sets X and Y
-    pos=$(i3-msg -t get_outputs | jq -r --argjson mx "$X" --argjson my "$Y" '
-        first(.[] | select(.active
-            and .rect.x <= $mx and $mx < .rect.x + .rect.width
-            and .rect.y <= $my and $my < .rect.y + .rect.height))
-        | "\(.name) \($mx - .rect.x - .rect.width)"')
-    place=()
-    [ -n "$pos" ] && place=(-m "''${pos% *}" -theme-str "window { x-offset: ''${pos#* }px; }")
+      while :; do
+          vol=$(pamixer --get-volume)
+          urgent=()
+          if [ "$(pamixer --get-mute)" = "true" ]; then
+              mute_icon="󰝟"
+              status="muted ($vol%)"
+              urgent+=(1)
+          else
+              mute_icon="󰕾"
+              status="volume $vol%"
+          fi
+          if [ "$(pamixer --default-source --get-mute)" = "true" ]; then
+              mic_icon="󰍭"
+              urgent+=(3)
+          else
+              mic_icon="󰍬"
+          fi
 
-    while :; do
-        vol=$(pamixer --get-volume)
-        urgent=()
-        if [ "$(pamixer --get-mute)" = "true" ]; then
-            mute_icon="󰝟"
-            status="muted ($vol%)"
-            urgent+=(1)
-        else
-            mute_icon="󰕾"
-            status="volume $vol%"
-        fi
-        if [ "$(pamixer --default-source --get-mute)" = "true" ]; then
-            mic_icon="󰍭"
-            urgent+=(3)
-        else
-            mic_icon="󰍬"
-        fi
+          extra=()
+          [ "''${#urgent[@]}" -gt 0 ] && extra=(-u "$(IFS=,; echo "''${urgent[*]}")")
 
-        extra=()
-        [ "''${#urgent[@]}" -gt 0 ] && extra=(-u "$(IFS=,; echo "''${urgent[*]}")")
+          idx=$(printf '󰝞\n%s\n󰝝\n%s\n󰒓\n' "$mute_icon" "$mic_icon" | rofi -dmenu \
+              -theme "$theme" -mesg "$status" -format i \
+              -selected-row "$sel" "''${place[@]}" "''${extra[@]}" \
+              -me-select-entry "" -me-accept-entry MousePrimary)
 
-        idx=$(printf '󰝞\n%s\n󰝝\n%s\n󰒓\n' "$mute_icon" "$mic_icon" | rofi -dmenu \
-            -theme "$theme" -mesg "$status" -format i \
-            -selected-row "$sel" "''${place[@]}" "''${extra[@]}" \
-            -me-select-entry "" -me-accept-entry MousePrimary)
-
-        case "$idx" in
-            0) pamixer -d 5 ;;
-            1) pamixer -t ;;
-            2) pamixer -i 5 ;;
-            3) pamixer --default-source -t ;;
-            4) exec ${pkgs.pavucontrol}/bin/pavucontrol ;;
-            *) exit 0 ;;
-        esac
-        sel=$idx
-    done
-  '';
+          case "$idx" in
+              0) pamixer -d 5 ;;
+              1) pamixer -t ;;
+              2) pamixer -i 5 ;;
+              3) pamixer --default-source -t ;;
+              4) exec ${pkgs.pavucontrol}/bin/pavucontrol ;;
+              *) exit 0 ;;
+          esac
+          sel=$idx
+      done
+    '';
+  });
 
   # Month grid popped out under the clock. `cal` already lays the month out
   # in fixed 3-char columns (2-char right-aligned day + separator), so awk
   # can address a day cell by offset instead of pattern-matching a number
   # that also appears in the year — it only wraps today's digits in pango
   # markup and leaves the padding alone, so the highlight stays cell-sized.
-  calendarScript = pkgs.writeShellScript "polybar-calendar" ''
-    export PATH=${makeBinPath [pkgs.util-linux pkgs.gawk pkgs.xdotool pkgs.i3 pkgs.jq pkgs.coreutils]}:${config.home.profileDirectory}/bin:$PATH
+  calendarScript = lib.getExe (pkgs.writeShellApplication {
+    name = "polybar-calendar";
+    runtimeInputs = [pkgs.util-linux pkgs.gawk pkgs.xdotool pkgs.i3 pkgs.jq pkgs.coreutils config.home.profileDirectory];
+    bashOptions = [];
+    text = ''
+      theme=${../../dotfiles/rofi/calendar.rasi}
 
-    theme=${../../dotfiles/rofi/calendar.rasi}
+      # Centre the window under the pointer: find the monitor containing it and
+      # the pointer's offset from that monitor's horizontal centre (the theme
+      # anchors north, so x-offset shifts from centre). i3 answers over IPC in
+      # milliseconds; xrandr would make the X server re-probe the outputs.
+      eval "$(xdotool getmouselocation --shell)" # sets X and Y
+      pos=$(i3-msg -t get_outputs | jq -r --argjson mx "$X" --argjson my "$Y" '
+          first(.[] | select(.active
+              and .rect.x <= $mx and $mx < .rect.x + .rect.width
+              and .rect.y <= $my and $my < .rect.y + .rect.height))
+          | "\(.name) \($mx - .rect.x - (.rect.width / 2 | floor))"')
+      place=()
+      [ -n "$pos" ] && place=(-m "''${pos% *}" -theme-str "window { x-offset: ''${pos#* }px; }")
 
-    # Centre the window under the pointer: find the monitor containing it and
-    # the pointer's offset from that monitor's horizontal centre (the theme
-    # anchors north, so x-offset shifts from centre). i3 answers over IPC in
-    # milliseconds; xrandr would make the X server re-probe the outputs.
-    eval "$(xdotool getmouselocation --shell)" # sets X and Y
-    pos=$(i3-msg -t get_outputs | jq -r --argjson mx "$X" --argjson my "$Y" '
-        first(.[] | select(.active
-            and .rect.x <= $mx and $mx < .rect.x + .rect.width
-            and .rect.y <= $my and $my < .rect.y + .rect.height))
-        | "\(.name) \($mx - .rect.x - (.rect.width / 2 | floor))"')
-    place=()
-    [ -n "$pos" ] && place=(-m "''${pos% *}" -theme-str "window { x-offset: ''${pos#* }px; }")
+      # Leading padding is load-bearing (the textbox renders the block
+      # left-aligned, so cal's own spacing is what lines the columns up);
+      # trailing padding is not, and pango drops it anyway.
+      text=$(cal | awk -v d="$(date +%-d)" '
+          $0 ~ /^[[:space:]]*$/ { next }                       # cal pads to 8 lines
+          { sub(/[ \t]+$/, "") }
+          NR == 1 { print "<span foreground=\"#F0C674\"><b>" $0 "</b></span>"; next }
+          NR == 2 { print "<span foreground=\"#707880\">" $0 "</span>"; next }
+          {
+              out = ""
+              for (i = 0; i < 7; i++) {
+                  tok = substr($0, i * 3 + 1, 2)
+                  if (tok ~ /[0-9]/ && tok + 0 == d) {
+                      pad = tok; sub(/[0-9].*/, "", pad)       # keep the alignment space outside the highlight
+                      num = substr(tok, length(pad) + 1)
+                      tok = pad "<span background=\"#F0C674\" foreground=\"#282A2E\"><b>" num "</b></span>"
+                  }
+                  out = out tok (i < 6 ? " " : "")
+              }
+              sub(/[ \t]+$/, "", out)
+              print out
+          }')
 
-    # Leading padding is load-bearing (the textbox renders the block
-    # left-aligned, so cal's own spacing is what lines the columns up);
-    # trailing padding is not, and pango drops it anyway.
-    text=$(cal | awk -v d="$(date +%-d)" '
-        $0 ~ /^[[:space:]]*$/ { next }                       # cal pads to 8 lines
-        { sub(/[ \t]+$/, "") }
-        NR == 1 { print "<span foreground=\"#F0C674\"><b>" $0 "</b></span>"; next }
-        NR == 2 { print "<span foreground=\"#707880\">" $0 "</span>"; next }
-        {
-            out = ""
-            for (i = 0; i < 7; i++) {
-                tok = substr($0, i * 3 + 1, 2)
-                if (tok ~ /[0-9]/ && tok + 0 == d) {
-                    pad = tok; sub(/[0-9].*/, "", pad)       # keep the alignment space outside the highlight
-                    num = substr(tok, length(pad) + 1)
-                    tok = pad "<span background=\"#F0C674\" foreground=\"#282A2E\"><b>" num "</b></span>"
-                }
-                out = out tok (i < 6 ? " " : "")
-            }
-            sub(/[ \t]+$/, "", out)
-            print out
-        }')
-
-    exec rofi -e "$text" -markup -theme "$theme" "''${place[@]}"
-  '';
+      exec rofi -e "$text" -markup -theme "$theme" "''${place[@]}"
+    '';
+  });
 
   # NordLynx state. The unit lives on the system bus, so this polls; `vpn`
   # also touches the flag file on every up/down, which wakes the loop
   # immediately so a click doesn't feel laggy.
-  vpnScript = pkgs.writeShellScript "polybar-vpn" ''
-    export PATH=${makeBinPath [pkgs.systemd pkgs.coreutils pkgs.gnused pkgs.inotify-tools]}:$PATH
+  vpnScript = lib.getExe (pkgs.writeShellApplication {
+    name = "polybar-vpn";
+    runtimeInputs = [pkgs.systemd pkgs.coreutils pkgs.gnused pkgs.inotify-tools];
+    bashOptions = [];
+    text = ''
+      STATE_FILE="/tmp/polybar_vpn_state"
+      [ -f "$STATE_FILE" ] || : >"$STATE_FILE"
 
-    STATE_FILE="/tmp/polybar_vpn_state"
-    [ -f "$STATE_FILE" ] || : >"$STATE_FILE"
+      render() {
+          if systemctl is-active --quiet wg-quick-nordlynx.service; then
+              # which server `vpn` last picked, so the bar says *where* you are
+              # and not just that you're somewhere (empty until anything is
+              # picked - that's the server pinned in the config)
+              cc=$(sed -n 's/^countryCode=//p' /var/lib/nordlynx/current 2>/dev/null | head -1)
+              echo "%{F${green}}󰦝''${cc:+ $cc}%{F-}"
+          else
+              echo "%{F${dim}}󰦞%{F-}"
+          fi
+      }
 
-    render() {
-        if systemctl is-active --quiet wg-quick-nordlynx.service; then
-            # which server `vpn` last picked, so the bar says *where* you are
-            # and not just that you're somewhere (empty until anything is
-            # picked - that's the server pinned in the config)
-            cc=$(sed -n 's/^countryCode=//p' /var/lib/nordlynx/current 2>/dev/null | head -1)
-            echo "%{F${green}}󰦝''${cc:+ $cc}%{F-}"
-        else
-            echo "%{F${dim}}󰦞%{F-}"
-        fi
-    }
-
-    render
-    while :; do
-        inotifywait -qq -t 5 -e close_write "$STATE_FILE" 2>/dev/null
-        render
-    done
-  '';
+      render
+      while :; do
+          inotifywait -qq -t 5 -e close_write "$STATE_FILE" 2>/dev/null
+          render
+      done
+    '';
+  });
 
   # Do not disturb. features/dnd.nix owns the switch; this just reflects and
   # toggles it.
-  dndScript = pkgs.writeShellScript "polybar-dnd" ''
-    export PATH=${makeBinPath [pkgs.coreutils pkgs.inotify-tools]}:$PATH
+  dndScript = lib.getExe (pkgs.writeShellApplication {
+    name = "polybar-dnd";
+    runtimeInputs = [pkgs.coreutils pkgs.inotify-tools];
+    bashOptions = [];
+    text = ''
+      STATE_FILE="${config.dnd.stateFile}"
+      [ -f "$STATE_FILE" ] || echo off >"$STATE_FILE"
 
-    STATE_FILE="${config.dnd.stateFile}"
-    [ -f "$STATE_FILE" ] || echo off >"$STATE_FILE"
+      render() {
+          if [ "$(cat "$STATE_FILE" 2>/dev/null)" = "on" ]; then
+              echo "%{F${red}}󰂛%{F-}"
+          else
+              echo "%{F${dim}}󰂚%{F-}"
+          fi
+      }
 
-    render() {
-        if [ "$(cat "$STATE_FILE" 2>/dev/null)" = "on" ]; then
-            echo "%{F${red}}󰂛%{F-}"
-        else
-            echo "%{F${dim}}󰂚%{F-}"
-        fi
-    }
-
-    render
-    while :; do
-        inotifywait -qq -t 30 -e close_write "$STATE_FILE" 2>/dev/null
-        render
-    done
-  '';
+      render
+      while :; do
+          inotifywait -qq -t 30 -e close_write "$STATE_FILE" 2>/dev/null
+          render
+      done
+    '';
+  });
 
   # Left-click checks now, right-click turns the 5-minute poller off/on.
-  marketplaceScript = pkgs.writeShellScript "polybar-marketplace" ''
-    export PATH=${makeBinPath [pkgs.coreutils pkgs.inotify-tools]}:$PATH
+  marketplaceScript = lib.getExe (pkgs.writeShellApplication {
+    name = "polybar-marketplace";
+    runtimeInputs = [pkgs.coreutils pkgs.inotify-tools];
+    bashOptions = [];
+    text = ''
+      FLAG="${config.xdg.stateHome}/marketplace-notifications/disabled"
+      mkdir -p "$(dirname "$FLAG")"
 
-    FLAG="${config.xdg.stateHome}/marketplace-notifications/disabled"
-    mkdir -p "$(dirname "$FLAG")"
+      render() {
+          if [ -e "$FLAG" ]; then
+              echo "%{F${dim}}󰄰%{F-}"
+          else
+              echo "%{F${yellow}}󰄐%{F-}"
+          fi
+      }
 
-    render() {
-        if [ -e "$FLAG" ]; then
-            echo "%{F${dim}}󰄰%{F-}"
-        else
-            echo "%{F${yellow}}󰄐%{F-}"
-        fi
-    }
-
-    render
-    while :; do
-        # watch the directory: the flag itself comes and goes, and
-        # inotifywait can't watch a path that doesn't exist yet
-        inotifywait -qq -t 30 -e create -e delete "$(dirname "$FLAG")" 2>/dev/null
-        render
-    done
-  '';
+      render
+      while :; do
+          # watch the directory: the flag itself comes and goes, and
+          # inotifywait can't watch a path that doesn't exist yet
+          inotifywait -qq -t 30 -e create -e delete "$(dirname "$FLAG")" 2>/dev/null
+          render
+      done
+    '';
+  });
 
   # rofi-power-menu is spawned by rofi from PATH, hence the export
-  powermenuScript = pkgs.writeShellScript "polybar-powermenu" ''
-    export PATH=${config.home.profileDirectory}/bin:$PATH
-    exec rofi -show power
-  '';
+  powermenuScript = lib.getExe (pkgs.writeShellApplication {
+    name = "polybar-powermenu";
+    runtimeInputs = [config.home.profileDirectory];
+    bashOptions = [];
+    text = ''
+      exec rofi -show power
+    '';
+  });
 
   modulesRight = concatStringsSep " " (
     ["wallpaper"]

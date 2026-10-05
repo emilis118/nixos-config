@@ -7,6 +7,12 @@
   # nixy still uses the deprecated `prettierd` formatter name; nvf renamed it.
   vim.languages.markdown.format.type = lib.mkForce ["prettier"];
 
+  # nixy enables svelte, which makes nvf add its prettier-plugin-svelte to the
+  # prettier preset. That package builds with pnpm_10, which nixpkgs marks
+  # insecure (CVE-2026-55487 and friends), so evaluation fails. Nothing here is
+  # written in Svelte — drop the plugin and keep astro's (built with pnpm_11).
+  vim.formatter.conform-nvim.presets.prettier.plugins = lib.mkForce ["astro"];
+
   vim.assistant.copilot.mappings = {
     suggestion = {
       accept = "<D-l>";

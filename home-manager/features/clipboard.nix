@@ -10,35 +10,43 @@ with lib; let
   # Standalone picker for the keybinding and the terminal: its own rofi
   # window. The HM module only exports CM_LAUNCHER as a session variable,
   # which an sddm -> i3 session doesn't reliably pick up, so set it here.
-  clipPick = pkgs.writeShellScriptBin "clip" ''
-    export PATH=${makeBinPath [pkgs.rofi pkgs.clipmenu pkgs.coreutils]}:$PATH
-    export CM_LAUNCHER=rofi
-    export CM_HISTLENGTH=${toString cfg.histLength}
-    exec clipmenu -i -p clipboard "$@"
-  '';
+  clipPick = pkgs.writeShellApplication {
+    name = "clip";
+    runtimeInputs = [pkgs.rofi pkgs.clipmenu pkgs.coreutils];
+    bashOptions = [];
+    text = ''
+      export CM_LAUNCHER=rofi
+      export CM_HISTLENGTH=${toString cfg.histLength}
+      exec clipmenu -i -p clipboard "$@"
+    '';
+  };
 
   # ...and the same thing as a tab inside the main rofi window. clipmenu
   # speaks rofi's script protocol natively (CM_LAUNCHER=rofi-script): no
   # arguments lists the clips, and being re-invoked with one re-copies it.
-  rofiClip = pkgs.writeShellScriptBin "rofi-clipboard" ''
-    export PATH=${makeBinPath [pkgs.clipmenu pkgs.coreutils]}:$PATH
-    export CM_LAUNCHER=rofi-script
+  rofiClip = pkgs.writeShellApplication {
+    name = "rofi-clipboard";
+    runtimeInputs = [pkgs.clipmenu pkgs.coreutils];
+    bashOptions = [];
+    text = ''
+      export CM_LAUNCHER=rofi-script
 
-    empty="(nothing copied yet this boot)"
+      empty="(nothing copied yet this boot)"
 
-    # Before the first clip there is no line_cache and clipmenu exits with an
-    # error, which would show up as a broken-looking tab. Say so instead.
-    # Path mirrors clipmenu's own: $CM_DIR/clipmenu.<major>.$USER/line_cache.
-    cache="''${CM_DIR:-''${XDG_RUNTIME_DIR:-''${TMPDIR:-/tmp}}}/clipmenu.${versions.major pkgs.clipmenu.version}.$USER/line_cache"
-    if [ ! -s "$cache" ]; then
-      [ -z "''${1:-}" ] && echo "$empty"
-      exit 0
-    fi
+      # Before the first clip there is no line_cache and clipmenu exits with an
+      # error, which would show up as a broken-looking tab. Say so instead.
+      # Path mirrors clipmenu's own: $CM_DIR/clipmenu.<major>.$USER/line_cache.
+      cache="''${CM_DIR:-''${XDG_RUNTIME_DIR:-''${TMPDIR:-/tmp}}}/clipmenu.${versions.major pkgs.clipmenu.version}.$USER/line_cache"
+      if [ ! -s "$cache" ]; then
+        [ -z "''${1:-}" ] && echo "$empty"
+        exit 0
+      fi
 
-    [ "''${1:-}" != "$empty" ] || exit 0
+      [ "''${1:-}" != "$empty" ] || exit 0
 
-    exec clipmenu "$@"
-  '';
+      exec clipmenu "$@"
+    '';
+  };
 in {
   # X11 has two clipboards and no history: whatever you copied dies with the
   # program you copied it from, and a stray middle-click pastes something

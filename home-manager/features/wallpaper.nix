@@ -1,4 +1,8 @@
-{pkgs, ...}: let
+{
+  pkgs,
+  lib,
+  ...
+}: let
   # Wallpapers come from the nix store, so they exist on every machine
   # regardless of where this repo is checked out.
   wallpapers = pkgs.runCommand "wallpapers" {} ''
@@ -7,8 +11,10 @@
   '';
 in {
   home.packages = [
-    (pkgs.writeShellScriptBin "random-wallpaper"
-      ''
+    (pkgs.writeShellApplication {
+      name = "random-wallpaper";
+      bashOptions = [];
+      text = ''
         shopt -s nullglob
 
         files=(${wallpapers}/*.jpg)
@@ -20,7 +26,8 @@ in {
         fi
 
         ${pkgs.feh}/bin/feh --bg-scale "''${files[RANDOM % count]}"
-      '')
+      '';
+    })
   ];
 
   # betterlockscreen -l shows a pre-rendered image from ~/.cache/betterlockscreen,
@@ -43,31 +50,34 @@ in {
     };
     Service = {
       Type = "oneshot";
-      ExecStart = pkgs.writeShellScript "betterlockscreen-cache" ''
-        export PATH=${pkgs.lib.makeBinPath [pkgs.xrandr pkgs.coreutils pkgs.gawk pkgs.betterlockscreen]}:$PATH
+      ExecStart = lib.getExe (pkgs.writeShellApplication {
+        name = "betterlockscreen-cache";
+        runtimeInputs = [pkgs.xrandr pkgs.coreutils pkgs.gawk pkgs.betterlockscreen];
+        bashOptions = [];
+        text = ''
+          marker="$HOME/.cache/betterlockscreen/.wallpaper-source"
 
-        marker="$HOME/.cache/betterlockscreen/.wallpaper-source"
+          layout() {
+            xrandr --listmonitors | awk 'NR > 1 {printf "%s:%s ", $2, $3}'
+          }
 
-        layout() {
-          xrandr --listmonitors | awk 'NR > 1 {printf "%s:%s ", $2, $3}'
-        }
+          # Hosts that force a mode do it from i3's startup commands, which can
+          # land after this unit starts. Wait for the layout to stop changing so
+          # the cache is not rendered against the pre-xrandr mode.
+          current=$(layout)
+          for _ in $(seq 10); do
+            sleep 2
+            next=$(layout)
+            [ "$next" = "$current" ] && break
+            current=$next
+          done
 
-        # Hosts that force a mode do it from i3's startup commands, which can
-        # land after this unit starts. Wait for the layout to stop changing so
-        # the cache is not rendered against the pre-xrandr mode.
-        current=$(layout)
-        for _ in $(seq 10); do
-          sleep 2
-          next=$(layout)
-          [ "$next" = "$current" ] && break
-          current=$next
-        done
-
-        key="${wallpapers} $current"
-        if [ "$(cat "$marker" 2>/dev/null)" != "$key" ]; then
-          betterlockscreen -u ${wallpapers} && printf '%s' "$key" >"$marker"
-        fi
-      '';
+          key="${wallpapers} $current"
+          if [ "$(cat "$marker" 2>/dev/null)" != "$key" ]; then
+            betterlockscreen -u ${wallpapers} && printf '%s' "$key" >"$marker"
+          fi
+        '';
+      });
     };
     Install.WantedBy = ["graphical-session.target"];
   };

@@ -13,66 +13,68 @@ with lib; let
   # immediately instead of on the next poll.
   stateFile = "/tmp/dnd_state";
 
-  dnd = pkgs.writeShellScriptBin "dnd" ''
-    set -uo pipefail
-    export PATH=${makeBinPath [pkgs.dunst pkgs.blocky pkgs.systemd pkgs.coreutils]}:$PATH
+  dnd = pkgs.writeShellApplication {
+    name = "dnd";
+    runtimeInputs = [pkgs.dunst pkgs.blocky pkgs.systemd pkgs.coreutils];
+    bashOptions = ["nounset" "pipefail"];
+    text = ''
+      state="${stateFile}"
 
-    state="${stateFile}"
+      # Only some machines run blocky (see hosts/shared/optional/blocky.nix);
+      # everywhere else the notification half still applies.
+      blocky_call() {
+        ${
+        if cfg.siteBlocking
+        then ''
+          blocky blocking "$@" >/dev/null 2>&1 ||
+            echo "dnd: no blocky on 127.0.0.1:4000 — site blocking unchanged" >&2
+        ''
+        else ":"
+      }
+      }
 
-    # Only some machines run blocky (see hosts/shared/optional/blocky.nix);
-    # everywhere else the notification half still applies.
-    blocky_call() {
-      ${
-      if cfg.siteBlocking
-      then ''
-        blocky blocking "$@" >/dev/null 2>&1 ||
-          echo "dnd: no blocky on 127.0.0.1:4000 — site blocking unchanged" >&2
-      ''
-      else ":"
-    }
-    }
+      on() {
+        echo on >"$state"
+        # 1. silence everything: dunst queues notifications instead of showing
+        #    them, so nothing is lost — `dnd off` shows what arrived
+        dunstctl set-paused true
+        # 2. block the social group (blocky's other groups are always on)
+        blocky_call enable
+        # 3. stop the marketplace poller from popping up while focused
+        systemctl --user stop marketplace-notifications.timer 2>/dev/null || true
+        echo "do not disturb: on"
+      }
 
-    on() {
-      echo on >"$state"
-      # 1. silence everything: dunst queues notifications instead of showing
-      #    them, so nothing is lost — `dnd off` shows what arrived
-      dunstctl set-paused true
-      # 2. block the social group (blocky's other groups are always on)
-      blocky_call enable
-      # 3. stop the marketplace poller from popping up while focused
-      systemctl --user stop marketplace-notifications.timer 2>/dev/null || true
-      echo "do not disturb: on"
-    }
+      off() {
+        echo off >"$state"
+        dunstctl set-paused false
+        # re-enable everything, then switch the social group back off
+        blocky_call enable
+        blocky_call disable --groups social
+        # only restart the poller if this machine has it and it wasn't
+        # turned off by hand (marketplace-toggle writes its own flag)
+        if [ ! -e "$HOME/.local/state/marketplace-notifications/disabled" ]; then
+          systemctl --user start marketplace-notifications.timer 2>/dev/null || true
+        fi
+        echo "do not disturb: off"
+      }
 
-    off() {
-      echo off >"$state"
-      dunstctl set-paused false
-      # re-enable everything, then switch the social group back off
-      blocky_call enable
-      blocky_call disable --groups social
-      # only restart the poller if this machine has it and it wasn't
-      # turned off by hand (marketplace-toggle writes its own flag)
-      if [ ! -e "$HOME/.local/state/marketplace-notifications/disabled" ]; then
-        systemctl --user start marketplace-notifications.timer 2>/dev/null || true
-      fi
-      echo "do not disturb: off"
-    }
-
-    case "''${1:-toggle}" in
-    on | enable) on ;;
-    off | disable) off ;;
-    toggle)
-      if [ "$(cat "$state" 2>/dev/null)" = "on" ]; then off; else on; fi
-      ;;
-    status)
-      if [ "$(cat "$state" 2>/dev/null)" = "on" ]; then echo on; else echo off; fi
-      ;;
-    *)
-      echo "usage: dnd [on|off|toggle|status]" >&2
-      exit 1
-      ;;
-    esac
-  '';
+      case "''${1:-toggle}" in
+      on | enable) on ;;
+      off | disable) off ;;
+      toggle)
+        if [ "$(cat "$state" 2>/dev/null)" = "on" ]; then off; else on; fi
+        ;;
+      status)
+        if [ "$(cat "$state" 2>/dev/null)" = "on" ]; then echo on; else echo off; fi
+        ;;
+      *)
+        echo "usage: dnd [on|off|toggle|status]" >&2
+        exit 1
+        ;;
+      esac
+    '';
+  };
 in {
   # Do not disturb: one switch that silences notifications, blocks the social
   # group in blocky (where blocky runs) and pauses the marketplace poller.

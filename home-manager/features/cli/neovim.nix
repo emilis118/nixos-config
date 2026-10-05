@@ -401,7 +401,11 @@ in {
       ln -s ${nvim}/bin/nvim $out/bin/vi
       ln -s ${nvim}/bin/nvim $out/bin/vim
     '')
-    (writeShellScriptBin "vimdiff" ''exec ${nvim}/bin/nvim -d "$@"'')
+    (writeShellApplication {
+      name = "vimdiff";
+      bashOptions = [];
+      text = ''exec ${nvim}/bin/nvim -d "$@"'';
+    })
 
     # nixy's neovim (github:anotherhadi/nixy) under a separate name, as a
     # second opinion — it doesn't touch the setup above

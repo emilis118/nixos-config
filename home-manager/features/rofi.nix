@@ -14,26 +14,30 @@
   # The list is shared with firefox; edit it in bookmarks.nix.
   bookmarks = import ./bookmarks.nix;
 
-  rofi-bookmarks = pkgs.writeShellScriptBin "rofi-bookmarks" ''
-    # rofi script mode: listed without arguments, re-invoked with the chosen
-    # entry as $1. Printing nothing on selection makes rofi close.
-    if [ -z "$1" ]; then
-    ${lib.concatMapStrings (b: ''
-        printf '%s\0icon\x1f%s\n' ${lib.escapeShellArg b.name} ${lib.escapeShellArg b.icon}
-      '')
-      bookmarks}  exit 0
-    fi
+  rofi-bookmarks = pkgs.writeShellApplication {
+    name = "rofi-bookmarks";
+    bashOptions = [];
+    text = ''
+      # rofi script mode: listed without arguments, re-invoked with the chosen
+      # entry as $1. Printing nothing on selection makes rofi close.
+      if [ -z "$1" ]; then
+      ${lib.concatMapStrings (b: ''
+          printf '%s\0icon\x1f%s\n' ${lib.escapeShellArg b.name} ${lib.escapeShellArg b.icon}
+        '')
+        bookmarks}  exit 0
+      fi
 
-    case "$1" in
-    ${lib.concatMapStrings (b: ''
-        ${lib.escapeShellArg b.name}) url=${lib.escapeShellArg b.url} ;;
-      '')
-      bookmarks}  *) exit 0 ;;
-    esac
+      case "$1" in
+      ${lib.concatMapStrings (b: ''
+          ${lib.escapeShellArg b.name}) url=${lib.escapeShellArg b.url} ;;
+        '')
+        bookmarks}  *) exit 0 ;;
+      esac
 
-    i3-msg "workspace number 1" >/dev/null 2>&1
-    setsid -f firefox --new-tab "$url" >/dev/null 2>&1 </dev/null
-  '';
+      i3-msg "workspace number 1" >/dev/null 2>&1
+      setsid -f firefox --new-tab "$url" >/dev/null 2>&1 </dev/null
+    '';
+  };
 
   # Remote-desktop connections surfaced as a "remote" tab, entirely driven by
   # `remmina.connections` (features/remote.nix) so the list is identical on
@@ -51,49 +55,53 @@
   # admin sops key yet (~/.config/sops/age/keys.txt, see SOPS-SETUP.md step
   # 6: the same key has to be placed on every machine that should be able to
   # decrypt secrets/passwords.yaml, a rebuild alone won't put it there).
-  rofi-remmina = pkgs.writeShellScriptBin "rofi-remmina" ''
-    # not escapeShellArg: the value is itself a shell expansion
-    # ("${FLAKE:-$HOME/...}/secrets/passwords.yaml") that has to run at
-    # runtime, same as passwordStore's own pwLib.
-    store="${config.passwordStore.file}"
+  rofi-remmina = pkgs.writeShellApplication {
+    name = "rofi-remmina";
+    bashOptions = [];
+    text = ''
+      # not escapeShellArg: the value is itself a shell expansion
+      # ("${FLAKE:-$HOME/...}/secrets/passwords.yaml") that has to run at
+      # runtime, same as passwordStore's own pwLib.
+      store="${config.passwordStore.file}"
 
-    warn() {
-      ${pkgs.libnotify}/bin/notify-send -a remmina "remmina" "$1" 2>/dev/null
-    }
+      warn() {
+        ${pkgs.libnotify}/bin/notify-send -a remmina "remmina" "$1" 2>/dev/null
+      }
 
-    if [ -z "$1" ]; then
+      if [ -z "$1" ]; then
+        ${lib.concatMapStrings (c: ''
+          printf '%s\0icon\x1f%s\x1finfo\x1f%s\n' \
+            ${lib.escapeShellArg "${c.name}  (${c.protocol} ${c.username}@${c.server})"} \
+            preferences-desktop-remote-desktop \
+            ${lib.escapeShellArg c.name}
+        '')
+        remminaConnections}
+        exit 0
+      fi
+
+      [ -n "$ROFI_INFO" ] || exit 0
+
+      case "$ROFI_INFO" in
       ${lib.concatMapStrings (c: ''
-        printf '%s\0icon\x1f%s\x1finfo\x1f%s\n' \
-          ${lib.escapeShellArg "${c.name}  (${c.protocol} ${c.username}@${c.server})"} \
-          preferences-desktop-remote-desktop \
-          ${lib.escapeShellArg c.name}
-      '')
-      remminaConnections}
-      exit 0
-    fi
-
-    [ -n "$ROFI_INFO" ] || exit 0
-
-    case "$ROFI_INFO" in
-    ${lib.concatMapStrings (c: ''
-        ${lib.escapeShellArg c.name})
-          creds=$(${pkgs.sops}/bin/sops -d --output-type json "$store" 2>/dev/null) || {
-            warn "couldn't decrypt the password store - is the sops admin key at ~/.config/sops/age/keys.txt on this machine?"
-            exit 1
-          }
-          pass=$(printf '%s' "$creds" | ${pkgs.jq}/bin/jq -er --arg e ${lib.escapeShellArg "rdp-${c.username}"} '.[$e].password // empty') || {
-            warn "no 'rdp-${c.username}' entry in the password store (pw edit)"
-            exit 1
-          }
-          uri=$(${pkgs.jq}/bin/jq -rn --arg u ${lib.escapeShellArg c.username} --arg p "$pass" --arg s ${lib.escapeShellArg c.server} \
-            '"${c.protocol}://" + ($u|@uri) + ":" + ($p|@uri) + "@" + ($s|@uri)')
-          setsid -f ${pkgs.remmina}/bin/remmina -c "$uri" >/dev/null 2>&1 </dev/null
-          ;;
-      '')
-      remminaConnections}
-    *) exit 0 ;;
-    esac
-  '';
+          ${lib.escapeShellArg c.name})
+            creds=$(${pkgs.sops}/bin/sops -d --output-type json "$store" 2>/dev/null) || {
+              warn "couldn't decrypt the password store - is the sops admin key at ~/.config/sops/age/keys.txt on this machine?"
+              exit 1
+            }
+            pass=$(printf '%s' "$creds" | ${pkgs.jq}/bin/jq -er --arg e ${lib.escapeShellArg "rdp-${c.username}"} '.[$e].password // empty') || {
+              warn "no 'rdp-${c.username}' entry in the password store (pw edit)"
+              exit 1
+            }
+            uri=$(${pkgs.jq}/bin/jq -rn --arg u ${lib.escapeShellArg c.username} --arg p "$pass" --arg s ${lib.escapeShellArg c.server} \
+              '"${c.protocol}://" + ($u|@uri) + ":" + ($p|@uri) + "@" + ($s|@uri)')
+            setsid -f ${pkgs.remmina}/bin/remmina -c "$uri" >/dev/null 2>&1 </dev/null
+            ;;
+        '')
+        remminaConnections}
+      *) exit 0 ;;
+      esac
+    '';
+  };
 in {
   options.rofiModes = {
     remote = lib.mkEnableOption "remmina remote-desktop tab in rofi";

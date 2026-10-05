@@ -68,50 +68,51 @@ with lib; let
     hr { background: var(--border); border: 0; height: 1px; }
   '';
 
-  mdb = pkgs.writeShellScriptBin "mdb" ''
-    set -euo pipefail
-    export PATH=${makeBinPath [pkgs.pandoc pkgs.coreutils pkgs.xdg-utils]}:$PATH
-
-    if [ "$#" -eq 0 ] && [ -t 0 ]; then
-      echo "usage: mdb <file.md> [...]   # or: cmd | mdb" >&2
-      exit 1
-    fi
-
-    out_dir="$(mktemp -d -t mdb.XXXXXX)"
-
-    render() {
-      # --embed-resources inlines the CSS and any local images; --resource-path
-      # points at the source file's directory so relative image links resolve
-      # the same way they do on GitHub, not relative to the current shell.
-      pandoc \
-        --from=gfm \
-        --to=html5 \
-        --standalone \
-        --embed-resources \
-        --css="${style}" \
-        --metadata=title="$2" \
-        --resource-path="$3" \
-        --output="$4" \
-        "$1"
-    }
-
-    if [ "$#" -eq 0 ]; then
-      target="$out_dir/stdin.html"
-      render - "stdin" "$PWD" "$target"
-      xdg-open "$target" >/dev/null 2>&1 &
-      exit 0
-    fi
-
-    for src in "$@"; do
-      if [ ! -f "$src" ]; then
-        echo "mdb: no such file: $src" >&2
+  mdb = pkgs.writeShellApplication {
+    name = "mdb";
+    runtimeInputs = [pkgs.pandoc pkgs.coreutils pkgs.xdg-utils];
+    text = ''
+      if [ "$#" -eq 0 ] && [ -t 0 ]; then
+        echo "usage: mdb <file.md> [...]   # or: cmd | mdb" >&2
         exit 1
       fi
-      target="$out_dir/$(basename "''${src%.*}").html"
-      render "$src" "$(basename "$src")" "$(dirname "$src")" "$target"
-      xdg-open "$target" >/dev/null 2>&1 &
-    done
-  '';
+
+      out_dir="$(mktemp -d -t mdb.XXXXXX)"
+
+      render() {
+        # --embed-resources inlines the CSS and any local images; --resource-path
+        # points at the source file's directory so relative image links resolve
+        # the same way they do on GitHub, not relative to the current shell.
+        pandoc \
+          --from=gfm \
+          --to=html5 \
+          --standalone \
+          --embed-resources \
+          --css="${style}" \
+          --metadata=title="$2" \
+          --resource-path="$3" \
+          --output="$4" \
+          "$1"
+      }
+
+      if [ "$#" -eq 0 ]; then
+        target="$out_dir/stdin.html"
+        render - "stdin" "$PWD" "$target"
+        xdg-open "$target" >/dev/null 2>&1 &
+        exit 0
+      fi
+
+      for src in "$@"; do
+        if [ ! -f "$src" ]; then
+          echo "mdb: no such file: $src" >&2
+          exit 1
+        fi
+        target="$out_dir/$(basename "''${src%.*}").html"
+        render "$src" "$(basename "$src")" "$(dirname "$src")" "$target"
+        xdg-open "$target" >/dev/null 2>&1 &
+      done
+    '';
+  };
 in {
   # `mdb file.md` renders markdown to a self-contained HTML file and opens it
   # in the default browser — the counterpart to `md` (glow, in glow.nix) for

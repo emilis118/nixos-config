@@ -6,7 +6,8 @@ mine and run X11 + i3; `daq-laptop` is the lab's and runs Plasma on Wayland.
 | host          | hostname     | what it is                                    |
 | ------------- | ------------ | --------------------------------------------- |
 | `desktop`     | `desktop`    | NVIDIA gaming desktop (Steam, CS2, blocky DNS) |
-| `amd-desktop` | `amd-desktop`| same as `desktop`, on a Ryzen 9 3900X + GTX 1070; core 10 (CPUs 10+22) isolated via `isolcpus` || `laptop`      | `laptop`     | personal laptop                               |
+| `amd-desktop` | `amd-desktop`| same as `desktop`, on a Ryzen 9 3900X + GTX 1070; its failing core 10 (CPUs 10+22) is taken offline at boot |
+| `laptop`      | `laptop`     | personal laptop                               |
 | `work_pc`     | `pcte276928` | CERN desktop, two monitors, `/mnt/lab` sshfs  |
 | `work_laptop` | `lapte277203`| CERN laptop, fingerprint reader, `/mnt/lab`   |
 | `daq-laptop`  | `lapte234119`| cryo lab DAQ laptop, KDE, shared, reachable remotely |
@@ -37,8 +38,9 @@ hosts/
   <host>/configuration.nix    only what is unique to that machine
   <host>/hardware-configuration.nix
   shared/global/              imported by every host (boot, nix, locale, fonts, zsh)
-  shared/optional/            opt-in per host (i3, kde, steam, razer, blocky,
-                              laptop, cern-lab, performance, remote-access)
+  shared/optional/            opt-in per host (i3, kde, nvidia, steam, razer,
+                              blocky, laptop, cern-lab, performance,
+                              remote-access)
   shared/users/<user>/        the accounts (emilis everywhere, cryolab on daq-laptop)
 home-manager/
   <host>.nix                  per-host home profile; mostly toggles + startup commands

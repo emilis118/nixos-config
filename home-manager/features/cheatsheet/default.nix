@@ -17,9 +17,9 @@ with lib; let
 
   # Shared by the CLI and the rofi mode: the curated sheet plus your own
   # notes, which live outside the store so adding one doesn't need a rebuild.
+  # what lib' needs on PATH, for every script that includes it
+  libDeps = [pkgs.coreutils pkgs.gnused pkgs.gnugrep pkgs.xclip pkgs.libnotify pkgs.util-linux pkgs.less pkgs.rofi];
   lib' = ''
-    export PATH=${makeBinPath [pkgs.coreutils pkgs.gnused pkgs.gnugrep pkgs.xclip pkgs.libnotify pkgs.util-linux pkgs.less pkgs.rofi]}:$PATH
-
     notes="${cfg.notesFile}"
 
     ensure_notes() {
@@ -43,107 +43,119 @@ with lib; let
     }
   '';
 
-  cheat = pkgs.writeShellScriptBin "cheat" ''
-    set -uo pipefail
-    ${lib'}
+  cheat = pkgs.writeShellApplication {
+    name = "cheat";
+    runtimeInputs = libDeps;
+    bashOptions = ["nounset" "pipefail"];
+    text = ''
+      ${lib'}
 
-    case "''${1:-}" in
-    -e | edit)
-      ensure_notes
-      exec ''${EDITOR:-nvim} "$notes"
-      ;;
-    -a | add)
-      shift
-      ensure_notes
-      if [ $# -lt 2 ]; then
-        echo "usage: cheat add <syntax> <description> [example] [category]" >&2
+      case "''${1:-}" in
+      -e | edit)
+        ensure_notes
+        exec ''${EDITOR:-nvim} "$notes"
+        ;;
+      -a | add)
+        shift
+        ensure_notes
+        if [ $# -lt 2 ]; then
+          echo "usage: cheat add <syntax> <description> [example] [category]" >&2
+          exit 1
+        fi
+        printf '%s\t%s\t%s\t%s\n' "''${4:-note}" "$1" "$2" "''${3:-}" >>"$notes"
+        echo "added to $notes"
+        ;;
+      -h | --help)
+        cat >&2 <<'USAGE'
+      usage:
+        cheat                       print the whole sheet
+        cheat <term>                only lines matching <term>
+        cheat add SYNTAX DESC [EXAMPLE] [CATEGORY]
+                                    add one of your own (category defaults to "note")
+        cheat edit                  open your notes file in $EDITOR
+
+      The rofi "cheat" tab shows the same thing; picking a row copies its
+      example. Your notes live outside the nix store, so adding one takes
+      effect immediately.
+      USAGE
         exit 1
-      fi
-      printf '%s\t%s\t%s\t%s\n' "''${4:-note}" "$1" "$2" "''${3:-}" >>"$notes"
-      echo "added to $notes"
-      ;;
-    -h | --help)
-      cat >&2 <<'USAGE'
-    usage:
-      cheat                       print the whole sheet
-      cheat <term>                only lines matching <term>
-      cheat add SYNTAX DESC [EXAMPLE] [CATEGORY]
-                                  add one of your own (category defaults to "note")
-      cheat edit                  open your notes file in $EDITOR
-
-    The rofi "cheat" tab shows the same thing; picking a row copies its
-    example. Your notes live outside the nix store, so adding one takes
-    effect immediately.
-    USAGE
-      exit 1
-      ;;
-    "")
-      all | sed 's/^/[/; s/\t/]\t/' | column -t -s "$(printf '\t')" | ${cfg.pager}
-      ;;
-    *)
-      all | grep -i -- "$1" | sed 's/^/[/; s/\t/]\t/' | column -t -s "$(printf '\t')"
-      ;;
-    esac
-  '';
+        ;;
+      "")
+        all | sed 's/^/[/; s/\t/]\t/' | column -t -s "$(printf '\t')" | ${cfg.pager}
+        ;;
+      *)
+        all | grep -i -- "$1" | sed 's/^/[/; s/\t/]\t/' | column -t -s "$(printf '\t')"
+        ;;
+      esac
+    '';
+  };
 
   # rofi script mode, same protocol as the bookmarks/remote/pw tabs: listed
   # with no arguments, re-invoked with the chosen row. The row index rides
   # along in ROFI_INFO so the display text can be padded freely.
-  rofiCheat = pkgs.writeShellScriptBin "rofi-cheat" ''
-    set -uo pipefail
-    ${lib'}
+  rofiCheat = pkgs.writeShellApplication {
+    name = "rofi-cheat";
+    runtimeInputs = libDeps;
+    bashOptions = ["nounset" "pipefail"];
+    text = ''
+      ${lib'}
 
-    add_label="+        add an entry of your own"
+      add_label="+        add an entry of your own"
 
-    if [ -z "''${1:-}" ]; then
-      printf '\0prompt\x1fcheat\n'
-      i=0
-      while IFS="$(printf '\t')" read -r c s d _; do
-        printf '%-8s %-26s %s\0info\x1f%s\n' "[$c]" "$s" "$d" "$i"
-        i=$((i + 1))
-      done < <(all)
-      printf '%s\0info\x1fadd\n' "$add_label"
-      exit 0
-    fi
+      if [ -z "''${1:-}" ]; then
+        printf '\0prompt\x1fcheat\n'
+        i=0
+        while IFS="$(printf '\t')" read -r c s d _; do
+          printf '%-8s %-26s %s\0info\x1f%s\n' "[$c]" "$s" "$d" "$i"
+          i=$((i + 1))
+        done < <(all)
+        printf '%s\0info\x1fadd\n' "$add_label"
+        exit 0
+      fi
 
-    if [ "''${ROFI_INFO:-}" = "add" ]; then
-      # a nested rofi can't run inside this one, so hand it off
-      setsid -f ${cheatAdd}/bin/cheat-add >/dev/null 2>&1 </dev/null
-      exit 0
-    fi
+      if [ "''${ROFI_INFO:-}" = "add" ]; then
+        # a nested rofi can't run inside this one, so hand it off
+        setsid -f ${cheatAdd}/bin/cheat-add >/dev/null 2>&1 </dev/null
+        exit 0
+      fi
 
-    row=$(all | sed -n "$((ROFI_INFO + 1))p")
-    [ -n "$row" ] || exit 0
+      row=$(all | sed -n "$((ROFI_INFO + 1))p")
+      [ -n "$row" ] || exit 0
 
-    syntax=$(printf '%s' "$row" | cut -f2)
-    desc=$(printf '%s' "$row" | cut -f3)
-    example=$(printf '%s' "$row" | cut -f4)
+      syntax=$(printf '%s' "$row" | cut -f2)
+      desc=$(printf '%s' "$row" | cut -f3)
+      example=$(printf '%s' "$row" | cut -f4)
 
-    # the example is the useful thing to paste; fall back to the syntax
-    copy=''${example:-$syntax}
-    printf '%s' "$copy" | xclip -selection clipboard
-    notify-send -a cheat "$syntax" "$desc
+      # the example is the useful thing to paste; fall back to the syntax
+      copy=''${example:-$syntax}
+      printf '%s' "$copy" | xclip -selection clipboard
+      notify-send -a cheat "$syntax" "$desc
 
-    copied: $copy"
-  '';
+      copied: $copy"
+    '';
+  };
 
   # Prompted add, so a new note is three keystrokes from the launcher.
-  cheatAdd = pkgs.writeShellScriptBin "cheat-add" ''
-    set -uo pipefail
-    ${lib'}
-    ensure_notes
+  cheatAdd = pkgs.writeShellApplication {
+    name = "cheat-add";
+    runtimeInputs = libDeps;
+    bashOptions = ["nounset" "pipefail"];
+    text = ''
+      ${lib'}
+      ensure_notes
 
-    ask() { rofi -dmenu -p "$1" -l 0 </dev/null; }
+      ask() { rofi -dmenu -p "$1" -l 0 </dev/null; }
 
-    syntax=$(ask "syntax") || exit 0
-    [ -n "$syntax" ] || exit 0
-    desc=$(ask "what it does") || exit 0
-    example=$(ask "example (optional)") || true
-    cat_name=$(ask "category (blank = note)") || true
+      syntax=$(ask "syntax") || exit 0
+      [ -n "$syntax" ] || exit 0
+      desc=$(ask "what it does") || exit 0
+      example=$(ask "example (optional)") || true
+      cat_name=$(ask "category (blank = note)") || true
 
-    printf '%s\t%s\t%s\t%s\n' "''${cat_name:-note}" "$syntax" "$desc" "''${example:-}" >>"$notes"
-    notify-send -a cheat "Added to your cheat sheet" "$syntax"
-  '';
+      printf '%s\t%s\t%s\t%s\n' "''${cat_name:-note}" "$syntax" "$desc" "''${example:-}" >>"$notes"
+      notify-send -a cheat "Added to your cheat sheet" "$syntax"
+    '';
+  };
 in {
   # Searchable cheat sheets: a curated set in data.nix (shell, vim, this
   # neovim config, zsh, nix, tmux, i3, and the commands this repo adds) plus

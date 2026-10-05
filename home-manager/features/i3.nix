@@ -14,48 +14,51 @@ with lib; let
   # watches fprintd-verify while locked, so touching the sensor unlocks
   # without having to press Enter first (i3lock only starts PAM - and with
   # it the fingerprint scan - on submit).
-  lockScreen = pkgs.writeShellScriptBin "lock-screen" ''
-    export PATH=${makeBinPath [pkgs.procps pkgs.gnugrep pkgs.coreutils]}:/run/current-system/sw/bin:$PATH
+  lockScreen = pkgs.writeShellApplication {
+    name = "lock-screen";
+    runtimeInputs = [pkgs.procps pkgs.gnugrep pkgs.coreutils "/run/current-system/sw"];
+    bashOptions = [];
+    text = ''
+      flag=$(mktemp -u /tmp/lock-screen-fprint.XXXXXX)
 
-    flag=$(mktemp -u /tmp/lock-screen-fprint.XXXXXX)
+      fprint_watch() {
+          command -v fprintd-verify >/dev/null 2>&1 || return 0
+          fprintd-list "$USER" 2>/dev/null | grep -q '#' || return 0
+          sleep 0.5 # let the locker window come up
+          while pgrep -x i3lock-color >/dev/null || pgrep -x i3lock >/dev/null; do
+              if fprintd-verify >/dev/null 2>&1; then
+                  touch "$flag"
+                  pkill -x i3lock-color 2>/dev/null
+                  pkill -x i3lock 2>/dev/null
+                  return 0
+              fi
+              sleep 1
+          done
+      }
 
-    fprint_watch() {
-        command -v fprintd-verify >/dev/null 2>&1 || return 0
-        fprintd-list "$USER" 2>/dev/null | grep -q '#' || return 0
-        sleep 0.5 # let the locker window come up
-        while pgrep -x i3lock-color >/dev/null || pgrep -x i3lock >/dev/null; do
-            if fprintd-verify >/dev/null 2>&1; then
-                touch "$flag"
-                pkill -x i3lock-color 2>/dev/null
-                pkill -x i3lock 2>/dev/null
-                return 0
-            fi
-            sleep 1
-        done
-    }
+      # Killing the watcher subshell orphans the fprintd-verify it is blocked
+      # in, and that orphan keeps the sensor claimed forever - after which
+      # every sudo/login gets "Device was already claimed" from fprintd and
+      # silently falls back to the password prompt. So take the child down
+      # too, and do it from a trap so an interrupted lock-screen still cleans
+      # up. Watcher first: killing verify on its own only makes the loop
+      # start another one.
+      cleanup() {
+          kill "$watcher" 2>/dev/null
+          pkill -x -u "$USER" fprintd-verify 2>/dev/null
+          rm -f "$flag"
+      }
 
-    # Killing the watcher subshell orphans the fprintd-verify it is blocked
-    # in, and that orphan keeps the sensor claimed forever - after which
-    # every sudo/login gets "Device was already claimed" from fprintd and
-    # silently falls back to the password prompt. So take the child down
-    # too, and do it from a trap so an interrupted lock-screen still cleans
-    # up. Watcher first: killing verify on its own only makes the loop
-    # start another one.
-    cleanup() {
-        kill "$watcher" 2>/dev/null
-        pkill -x -u "$USER" fprintd-verify 2>/dev/null
-        rm -f "$flag"
-    }
+      fprint_watch &
+      watcher=$!
+      trap cleanup EXIT INT TERM
 
-    fprint_watch &
-    watcher=$!
-    trap cleanup EXIT INT TERM
-
-    # a locker killed by the fingerprint watcher exits non-zero; the flag
-    # tells that apart from betterlockscreen failing to start
-    ${pkgs.betterlockscreen}/bin/betterlockscreen -l dim \
-        || { [ -e "$flag" ] || ${pkgs.i3lock}/bin/i3lock -n -c 000000; }
-  '';
+      # a locker killed by the fingerprint watcher exits non-zero; the flag
+      # tells that apart from betterlockscreen failing to start
+      ${pkgs.betterlockscreen}/bin/betterlockscreen -l dim \
+          || { [ -e "$flag" ] || ${pkgs.i3lock}/bin/i3lock -n -c 000000; }
+    '';
+  };
 
   # What xss-lock actually runs, so blanking and locking can happen at
   # different times.
@@ -74,28 +77,31 @@ with lib; let
   # (marked by the sleep-lock fd) and `loginctl lock-session` from the rofi
   # power menu (idle is ~0 when a human just asked for it). Both bypass the
   # wait.
-  idleLock = pkgs.writeShellScriptBin "idle-lock" ''
-    export PATH=${makeBinPath [pkgs.xprintidle pkgs.coreutils]}:$PATH
+  idleLock = pkgs.writeShellApplication {
+    name = "idle-lock";
+    runtimeInputs = [pkgs.xprintidle pkgs.coreutils];
+    bashOptions = [];
+    text = ''
+      # idle time at which we actually lock
+      lock_ms=900000
+      # above this, assume DPMS/screensaver fired us rather than a human. Well
+      # under the 600s blank so a slow clock read can't misclassify things.
+      min_idle_ms=300000
 
-    # idle time at which we actually lock
-    lock_ms=900000
-    # above this, assume DPMS/screensaver fired us rather than a human. Well
-    # under the 600s blank so a slow clock read can't misclassify things.
-    min_idle_ms=300000
+      if [ -z "$XSS_SLEEP_LOCK_FD" ] && [ "$(xprintidle)" -ge "$min_idle_ms" ]; then
+          # blank-triggered: hold off until the lock deadline, bailing out the
+          # moment the user touches anything (idle drops back to ~0)
+          while :; do
+              idle=$(xprintidle)
+              [ "$idle" -ge "$lock_ms" ] && break
+              [ "$idle" -lt "$min_idle_ms" ] && exit 0
+              sleep 5
+          done
+      fi
 
-    if [ -z "$XSS_SLEEP_LOCK_FD" ] && [ "$(xprintidle)" -ge "$min_idle_ms" ]; then
-        # blank-triggered: hold off until the lock deadline, bailing out the
-        # moment the user touches anything (idle drops back to ~0)
-        while :; do
-            idle=$(xprintidle)
-            [ "$idle" -ge "$lock_ms" ] && break
-            [ "$idle" -lt "$min_idle_ms" ] && exit 0
-            sleep 5
-        done
-    fi
-
-    exec ${lockScreen}/bin/lock-screen
-  '';
+      exec ${lockScreen}/bin/lock-screen
+    '';
+  };
 in {
   imports = [./polybar.nix ./i3-profile.nix];
 

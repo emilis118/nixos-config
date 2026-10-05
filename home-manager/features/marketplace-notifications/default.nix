@@ -5,10 +5,14 @@
   ...
 }: let
   pythonEnv = pkgs.python3.withPackages (ps: [ps.msal]);
-  runner = pkgs.writeShellScriptBin "marketplace-check" ''
-    export PATH=${lib.makeBinPath [pkgs.dunst pkgs.xdg-utils]}:$PATH
-    exec ${pythonEnv}/bin/python3 ${./check.py} "$@"
-  '';
+  runner = pkgs.writeShellApplication {
+    name = "marketplace-check";
+    runtimeInputs = [pkgs.dunst pkgs.xdg-utils];
+    bashOptions = [];
+    text = ''
+      exec ${pythonEnv}/bin/python3 ${./check.py} "$@"
+    '';
+  };
   stateDir = "${config.xdg.stateHome}/marketplace-notifications";
   tokenCache = "${stateDir}/token_cache.json";
   # Presence of this file means "leave me alone". A flag rather than just
@@ -16,37 +20,39 @@
   disabledFlag = "${stateDir}/disabled";
 
   # Right-click target for the polybar module.
-  toggle = pkgs.writeShellScriptBin "marketplace-toggle" ''
-    set -uo pipefail
-    export PATH=${lib.makeBinPath [pkgs.systemd pkgs.coreutils pkgs.libnotify]}:$PATH
+  toggle = pkgs.writeShellApplication {
+    name = "marketplace-toggle";
+    runtimeInputs = [pkgs.systemd pkgs.coreutils pkgs.libnotify];
+    bashOptions = ["nounset" "pipefail"];
+    text = ''
+      flag="${disabledFlag}"
+      mkdir -p "$(dirname "$flag")"
 
-    flag="${disabledFlag}"
-    mkdir -p "$(dirname "$flag")"
+      case "''${1:-toggle}" in
+      on) rm -f "$flag" ;;
+      off) : >"$flag" ;;
+      toggle)
+        if [ -e "$flag" ]; then rm -f "$flag"; else : >"$flag"; fi
+        ;;
+      status)
+        [ -e "$flag" ] && echo off || echo on
+        exit 0
+        ;;
+      *)
+        echo "usage: marketplace-toggle [on|off|toggle|status]" >&2
+        exit 1
+        ;;
+      esac
 
-    case "''${1:-toggle}" in
-    on) rm -f "$flag" ;;
-    off) : >"$flag" ;;
-    toggle)
-      if [ -e "$flag" ]; then rm -f "$flag"; else : >"$flag"; fi
-      ;;
-    status)
-      [ -e "$flag" ] && echo off || echo on
-      exit 0
-      ;;
-    *)
-      echo "usage: marketplace-toggle [on|off|toggle|status]" >&2
-      exit 1
-      ;;
-    esac
-
-    if [ -e "$flag" ]; then
-      systemctl --user stop marketplace-notifications.timer 2>/dev/null || true
-      notify-send -a marketplace -u low "Marketplace" "polling off"
-    else
-      systemctl --user start marketplace-notifications.timer 2>/dev/null || true
-      notify-send -a marketplace -u low "Marketplace" "polling on"
-    fi
-  '';
+      if [ -e "$flag" ]; then
+        systemctl --user stop marketplace-notifications.timer 2>/dev/null || true
+        notify-send -a marketplace -u low "Marketplace" "polling off"
+      else
+        systemctl --user start marketplace-notifications.timer 2>/dev/null || true
+        notify-send -a marketplace -u low "Marketplace" "polling on"
+      fi
+    '';
+  };
 in {
   # `marketplace-check` in PATH for manual runs and the one-time device-code login
   home.packages = [runner toggle];
@@ -58,18 +64,22 @@ in {
     };
     Service = {
       Type = "oneshot";
-      ExecStart = pkgs.writeShellScript "marketplace-check-timer" ''
-        # switched off from the polybar module (right-click) or `marketplace-toggle off`
-        if [ -e "${disabledFlag}" ]; then
-          exit 0
-        fi
-        # first login (device flow) must be done interactively: run marketplace-check in a terminal
-        if [ ! -f "${tokenCache}" ]; then
-          echo "no token cache yet — run marketplace-check manually once"
-          exit 0
-        fi
-        exec ${runner}/bin/marketplace-check
-      '';
+      ExecStart = lib.getExe (pkgs.writeShellApplication {
+        name = "marketplace-check-timer";
+        bashOptions = [];
+        text = ''
+          # switched off from the polybar module (right-click) or `marketplace-toggle off`
+          if [ -e "${disabledFlag}" ]; then
+            exit 0
+          fi
+          # first login (device flow) must be done interactively: run marketplace-check in a terminal
+          if [ ! -f "${tokenCache}" ]; then
+            echo "no token cache yet — run marketplace-check manually once"
+            exit 0
+          fi
+          exec ${runner}/bin/marketplace-check
+        '';
+      });
     };
   };
 

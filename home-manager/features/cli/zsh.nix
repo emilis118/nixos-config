@@ -55,18 +55,22 @@
   # with no network isn't a broken cache update. A real error from tldr
   # itself still propagates and still shows up in polybar.
   systemd.user.services.tldr-update.Service.ExecStart = lib.mkForce (
-    pkgs.writeShellScript "tldr-update-when-online" ''
-      # ~5 min of grace; each probe covers DNS + TCP + TLS, which is
-      # exactly what the cache download needs.
-      for _ in $(seq 60); do
-        if ${pkgs.curl}/bin/curl -sSf --max-time 5 -o /dev/null \
-            https://github.com 2>/dev/null; then
-          exec ${pkgs.tealdeer}/bin/tldr --update
-        fi
-        sleep 5
-      done
+    lib.getExe (pkgs.writeShellApplication {
+      name = "tldr-update-when-online";
+      bashOptions = [];
+      text = ''
+        # ~5 min of grace; each probe covers DNS + TCP + TLS, which is
+        # exactly what the cache download needs.
+        for _ in $(seq 60); do
+          if ${pkgs.curl}/bin/curl -sSf --max-time 5 -o /dev/null \
+              https://github.com 2>/dev/null; then
+            exec ${pkgs.tealdeer}/bin/tldr --update
+          fi
+          sleep 5
+        done
 
-      echo "no network after 5 minutes; skipping tldr cache update"
-    ''
+        echo "no network after 5 minutes; skipping tldr cache update"
+      '';
+    })
   );
 }

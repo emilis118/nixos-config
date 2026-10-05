@@ -6,6 +6,9 @@
     home-manager.url = "github:nix-community/home-manager/release-26.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     claude-code.url = "github:sadjow/claude-code-nix";
+    # only used through its overlay, which builds against our pkgs anyway —
+    # without this the lock carries a second, unused nixpkgs-unstable
+    claude-code.inputs.nixpkgs.follows = "nixpkgs";
     # herdr: terminal multiplexer for AI agents; not in nixpkgs, so take the
     # upstream flake's overlay (exposes `herdr`, used in features/cli).
     herdr.url = "github:ogulcancelik/herdr";
@@ -45,7 +48,7 @@
             (inputs.nvf.lib.neovimConfiguration {
               pkgs = final;
               modules =
-                map (m: "${inputs.nixy}/home/programs/nvf/${m}.nix") [
+                map (m: "${inputs.nixy}/home/nvf/${m}.nix") [
                   "options"
                   "languages"
                   "picker"

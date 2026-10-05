@@ -15,7 +15,6 @@
     ./spreadsheet.nix
     ./slidev.nix
     ./claude.nix
-    ./mdb.nix
   ];
 
   home.packages = with pkgs; [

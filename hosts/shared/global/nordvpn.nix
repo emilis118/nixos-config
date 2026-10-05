@@ -28,42 +28,44 @@ with lib; let
   # Root half of the switch. Runs from wg-quick's postUp, so picking a server
   # needs no sudo and no rebuild: `vpn` writes the file, restarts the unit
   # (the polkit rule below makes that password-less) and this applies it.
-  nordApply = pkgs.writeShellScriptBin "nordlynx-apply" ''
-    set -uo pipefail
-    export PATH=${makeBinPath [pkgs.wireguard-tools pkgs.coreutils pkgs.gnused pkgs.gnugrep]}:$PATH
+  nordApply = pkgs.writeShellApplication {
+    name = "nordlynx-apply";
+    runtimeInputs = [pkgs.wireguard-tools pkgs.coreutils pkgs.gnused pkgs.gnugrep];
+    bashOptions = ["nounset" "pipefail"];
+    text = ''
+      state=${stateFile}
+      # nothing picked yet: the peer baked into the config stands
+      [ -r "$state" ] || exit 0
 
-    state=${stateFile}
-    # nothing picked yet: the peer baked into the config stands
-    [ -r "$state" ] || exit 0
+      field() { sed -n "s/^$1=//p" "$state" | head -1; }
+      endpoint=$(field endpoint)
+      pub=$(field publicKey)
 
-    field() { sed -n "s/^$1=//p" "$state" | head -1; }
-    endpoint=$(field endpoint)
-    pub=$(field publicKey)
+      # This runs as root on a file a non-root user wrote, so nothing reaches
+      # `wg set` before it looks exactly like an endpoint and a key. Validate
+      # everything first — a half-applied peer swap would leave the tunnel with
+      # no peer at all.
+      printf '%s' "$endpoint" | grep -Eq '^[0-9]{1,3}(\.[0-9]{1,3}){3}:[0-9]{1,5}$' || {
+        echo "nordlynx-apply: not an IP:port, ignoring $state" >&2
+        exit 1
+      }
+      printf '%s' "$pub" | grep -Eq '^[A-Za-z0-9+/]{43}=$' || {
+        echo "nordlynx-apply: not a WireGuard public key, ignoring $state" >&2
+        exit 1
+      }
 
-    # This runs as root on a file a non-root user wrote, so nothing reaches
-    # `wg set` before it looks exactly like an endpoint and a key. Validate
-    # everything first — a half-applied peer swap would leave the tunnel with
-    # no peer at all.
-    printf '%s' "$endpoint" | grep -Eq '^[0-9]{1,3}(\.[0-9]{1,3}){3}:[0-9]{1,5}$' || {
-      echo "nordlynx-apply: not an IP:port, ignoring $state" >&2
-      exit 1
-    }
-    printf '%s' "$pub" | grep -Eq '^[A-Za-z0-9+/]{43}=$' || {
-      echo "nordlynx-apply: not a WireGuard public key, ignoring $state" >&2
-      exit 1
-    }
-
-    # The peer's allowedIPs are 0.0.0.0/0 either way and the routes wg-quick
-    # installed point at the device, not at a peer — so swapping the peer
-    # keeps the routing table exactly as it was.
-    for p in $(wg show ${iface} peers); do
-      [ "$p" = "$pub" ] || wg set ${iface} peer "$p" remove
-    done
-    wg set ${iface} peer "$pub" \
-      endpoint "$endpoint" \
-      allowed-ips 0.0.0.0/0,::/0 \
-      persistent-keepalive 25
-  '';
+      # The peer's allowedIPs are 0.0.0.0/0 either way and the routes wg-quick
+      # installed point at the device, not at a peer — so swapping the peer
+      # keeps the routing table exactly as it was.
+      for p in $(wg show ${iface} peers); do
+        [ "$p" = "$pub" ] || wg set ${iface} peer "$p" remove
+      done
+      wg set ${iface} peer "$pub" \
+        endpoint "$endpoint" \
+        allowed-ips 0.0.0.0/0,::/0 \
+        persistent-keepalive 25
+    '';
+  };
 
   # Shared by `vpn`, `vpn-menu` and `nordvpn-pick`: Nord's public API, the
   # country/city cache behind the menus, and reading/writing the pick.
@@ -139,7 +141,7 @@ with lib; let
       }
 
       # Nord calls the UK "GB", its servers are called uk1234
-      [ "$(printf '%s' "$t" | tr 'A-Z' 'a-z')" = "uk" ] && t=gb
+      [ "$(printf '%s' "$t" | tr '[:upper:]' '[:lower:]')" = "uk" ] && t=gb
 
       id=$(jq -r --arg t "$t" '.[] | select((.name|ascii_downcase)==($t|ascii_downcase) or (.code|ascii_downcase)==($t|ascii_downcase)) | .id' "$countries" | head -1)
       if [ -n "$id" ]; then
@@ -159,7 +161,7 @@ with lib; let
       # you can't just point the old key at a new IP.
       case "$t" in
       [a-zA-Z][a-zA-Z][0-9]*)
-        code=$(printf '%s' "$t" | cut -c1-2 | tr 'A-Z' 'a-z')
+        code=$(printf '%s' "$t" | cut -c1-2 | tr '[:upper:]' '[:lower:]')
         [ "$code" = "uk" ] && code=gb
         id=$(jq -r --arg c "$code" '.[] | select((.code|ascii_downcase)==$c) | .id' "$countries" | head -1)
         if [ -n "$id" ]; then
@@ -199,365 +201,375 @@ with lib; let
 
   # `vpn up|down|toggle|switch|status|list|…` — the whole thing from a shell,
   # with the menu below as a front-end for the same commands.
-  vpnCtl = pkgs.writeShellScriptBin "vpn" ''
-    set -uo pipefail
-    export PATH=${makeBinPath [pkgs.systemd pkgs.wireguard-tools pkgs.curl pkgs.jq pkgs.coreutils pkgs.gnused pkgs.gawk pkgs.findutils]}:$PATH
+  vpnCtl = pkgs.writeShellApplication {
+    name = "vpn";
+    runtimeInputs = [pkgs.systemd pkgs.wireguard-tools pkgs.curl pkgs.jq pkgs.coreutils pkgs.gnused pkgs.gawk pkgs.findutils];
+    bashOptions = ["nounset" "pipefail"];
+    text = ''
+      ${apiLib}
 
-    ${apiLib}
+      # no sudo: the polkit rule below lets wheel manage just this unit
+      poke() { : >${polybarFlag} 2>/dev/null || true; }
+      active() { systemctl is-active --quiet ${unit}; }
 
-    # no sudo: the polkit rule below lets wheel manage just this unit
-    poke() { : >${polybarFlag} 2>/dev/null || true; }
-    active() { systemctl is-active --quiet ${unit}; }
+      insights() { curl -s --max-time 6 "$api/helpers/ips/insights"; }
 
-    insights() { curl -s --max-time 6 "$api/helpers/ips/insights"; }
+      # Whether traffic is really leaving through Nord. An interface that came
+      # up proves nothing: a retired server takes the tunnel with it and
+      # wg-quick still reports success.
+      protected() { insights | jq -e '.protected == true' >/dev/null 2>&1; }
 
-    # Whether traffic is really leaving through Nord. An interface that came
-    # up proves nothing: a retired server takes the tunnel with it and
-    # wg-quick still reports success.
-    protected() { insights | jq -e '.protected == true' >/dev/null 2>&1; }
+      # Picking a server means talking to the API, which goes through the
+      # tunnel when one is up — and a broken tunnel is exactly when you want to
+      # switch. So drop it first if nothing gets out.
+      ensure_api() {
+        curl -sf --max-time 6 -o /dev/null "$api/helpers/ips/insights" && return 0
+        if active; then
+          echo "no route to the Nord API through the tunnel — bringing it down first"
+          systemctl stop ${unit}
+          poke
+        fi
+        curl -sf --max-time 10 -o /dev/null "$api/helpers/ips/insights"
+      }
 
-    # Picking a server means talking to the API, which goes through the
-    # tunnel when one is up — and a broken tunnel is exactly when you want to
-    # switch. So drop it first if nothing gets out.
-    ensure_api() {
-      curl -sf --max-time 6 -o /dev/null "$api/helpers/ips/insights" && return 0
-      if active; then
-        echo "no route to the Nord API through the tunnel — bringing it down first"
+      pick() { # $1 = target, empty for fastest
+        local line
+        ensure_api || {
+          echo "can't reach the Nord API" >&2
+          return 1
+        }
+        line=$(resolve "''${1:-}" 1) || return 1
+        [ -n "$line" ] || {
+          echo "no WireGuard server matches '$1'" >&2
+          return 1
+        }
+        printf '%s\n' "$line" | save_server || {
+          echo "couldn't write $state" >&2
+          return 1
+        }
+        echo "picked $(current_label)"
+      }
+
+      start() {
+        if active; then systemctl restart ${unit}; else systemctl start ${unit}; fi
+        poke
+      }
+
+      # A pinned server that Nord has since retired is the usual failure, and
+      # it's a silent one. Rather than leave you to notice, take the same
+      # country and pick a live server in it. Once only — if that doesn't work
+      # either, the problem isn't the server.
+      heal() {
+        local where
+        where=$(state_field country)
+        echo "no traffic through $(current_label) — picking another server''${where:+ in $where}"
         systemctl stop ${unit}
         poke
-      fi
-      curl -sf --max-time 10 -o /dev/null "$api/helpers/ips/insights"
-    }
-
-    pick() { # $1 = target, empty for fastest
-      local line
-      ensure_api || {
-        echo "can't reach the Nord API" >&2
-        return 1
-      }
-      line=$(resolve "''${1:-}" 1) || return 1
-      [ -n "$line" ] || {
-        echo "no WireGuard server matches '$1'" >&2
-        return 1
-      }
-      printf '%s\n' "$line" | save_server || {
-        echo "couldn't write $state" >&2
-        return 1
-      }
-      echo "picked $(current_label)"
-    }
-
-    start() {
-      if active; then systemctl restart ${unit}; else systemctl start ${unit}; fi
-      poke
-    }
-
-    # A pinned server that Nord has since retired is the usual failure, and
-    # it's a silent one. Rather than leave you to notice, take the same
-    # country and pick a live server in it. Once only — if that doesn't work
-    # either, the problem isn't the server.
-    heal() {
-      local where
-      where=$(state_field country)
-      echo "no traffic through $(current_label) — picking another server''${where:+ in $where}"
-      systemctl stop ${unit}
-      poke
-      pick "$where" || pick "" || return 1
-      start
-      protected || echo "still nothing getting out — check the link, or try 'vpn up <country>'"
-    }
-
-    up() {
-      if [ -n "''${1:-}" ]; then
-        pick "$1" || return 1
+        pick "$where" || pick "" || return 1
         start
-      else
-        active || start
-      fi
-      protected || heal
-      status
-    }
+        protected || echo "still nothing getting out — check the link, or try 'vpn up <country>'"
+      }
 
-    down() {
-      systemctl stop ${unit}
-      poke
-      echo "nordlynx down"
-    }
-
-    status() {
-      local j
-      if active; then
-        j=$(insights)
-        if [ -n "$j" ]; then
-          echo "nordlynx up — $(current_label) — $(echo "$j" | jq -r '"\(.ip)  \(.city // "?"), \(.country)  protected=\(.protected)"')"
+      up() {
+        if [ -n "''${1:-}" ]; then
+          pick "$1" || return 1
+          start
         else
-          echo "nordlynx up — $(current_label) (could not reach the Nord API to confirm)"
+          active || start
         fi
-      else
-        echo "nordlynx down — $(current_label) when started"
-      fi
-    }
-
-    list() {
-      local out
-      out=$(resolve "''${1:-}" 25) || return 1
-      [ -n "$out" ] || {
-        echo "nothing found" >&2
-        return 1
+        protected || heal
+        status
       }
-      printf '%s\n' "$out" | awk -F'\t' '{printf "%-22s %-16s %-16s load %3s%%\n", $1, $4, $6, $3}'
-    }
 
-    case "''${1:-status}" in
-    up | start | connect | switch) up "''${2:-}" ;;
-    # `up` with no argument keeps the current pick, so re-picking the fastest
-    # server anywhere needs a word of its own
-    fastest)
-      pick "" || exit 1
-      start
-      protected || heal
-      status
-      ;;
-    down | stop | disconnect) down ;;
-    toggle) active && down || up ;;
-    reconnect)
-      start
-      protected || heal
-      status
-      ;;
-    status) status ;;
-    current) current_label ;;
-    list | servers) list "''${2:-}" ;;
-    countries)
-      have_countries || exit 1
-      jq -r '.[] | "\(.name) (\(.code))  \(.serverCount) servers"' "$countries" | sort
-      ;;
-    refresh)
-      fetch_countries && echo "cached $(jq length "$countries") countries" || {
-        echo "refresh failed" >&2
-        exit 1
+      down() {
+        systemctl stop ${unit}
+        poke
+        echo "nordlynx down"
       }
-      ;;
-    default | reset)
-      rm -f "$state"
-      echo "back to the built-in default (${cfg.endpoint})"
-      # only reconnect if there's a tunnel to move; being down is not a failure
-      if active; then
+
+      status() {
+        local j
+        if active; then
+          j=$(insights)
+          if [ -n "$j" ]; then
+            echo "nordlynx up — $(current_label) — $(echo "$j" | jq -r '"\(.ip)  \(.city // "?"), \(.country)  protected=\(.protected)"')"
+          else
+            echo "nordlynx up — $(current_label) (could not reach the Nord API to confirm)"
+          fi
+        else
+          echo "nordlynx down — $(current_label) when started"
+        fi
+      }
+
+      list() {
+        local out
+        out=$(resolve "''${1:-}" 25) || return 1
+        [ -n "$out" ] || {
+          echo "nothing found" >&2
+          return 1
+        }
+        printf '%s\n' "$out" | awk -F'\t' '{printf "%-22s %-16s %-16s load %3s%%\n", $1, $4, $6, $3}'
+      }
+
+      case "''${1:-status}" in
+      up | start | connect | switch) up "''${2:-}" ;;
+      # `up` with no argument keeps the current pick, so re-picking the fastest
+      # server anywhere needs a word of its own
+      fastest)
+        pick "" || exit 1
         start
         protected || heal
         status
-      fi
-      ;;
-    show) sudo wg show ${iface} ;;
-    *)
-      {
-        echo "usage: vpn <command>"
-        echo
-        echo "  up|connect [where]  bring the tunnel up (optionally on a new server)"
-        echo "  down                bring it down"
-        echo "  toggle              flip it"
-        echo "  reconnect           restart on the current server"
-        echo "  switch <where>      pick a new server and connect"
-        echo "  status              where you are, and whether Nord agrees you're covered"
-        echo "  current             the server the tunnel points at"
-        echo "  list [where]        servers with their load"
-        echo "  countries           everywhere Nord has WireGuard servers"
-        echo "  refresh             re-fetch the cached country list"
-        echo "  default             forget the pick, go back to the one in the config"
-        echo "  show                wg show (needs sudo)"
-        echo
-        echo "<where> is a country (\"France\", \"fr\"), a city (\"Paris\") or a server"
-        echo "(\"fr1178\"). Switching takes effect immediately — no rebuild."
-      } >&2
-      exit 1
-      ;;
-    esac
-  '';
+        ;;
+      down | stop | disconnect) down ;;
+      toggle) if active; then down; else up; fi ;;
+      reconnect)
+        start
+        protected || heal
+        status
+        ;;
+      status) status ;;
+      current) current_label ;;
+      list | servers) list "''${2:-}" ;;
+      countries)
+        have_countries || exit 1
+        jq -r '.[] | "\(.name) (\(.code))  \(.serverCount) servers"' "$countries" | sort
+        ;;
+      refresh)
+        if fetch_countries; then
+          echo "cached $(jq length "$countries") countries"
+        else
+          echo "refresh failed" >&2
+          exit 1
+        fi
+        ;;
+      default | reset)
+        rm -f "$state"
+        echo "back to the built-in default (${cfg.endpoint})"
+        # only reconnect if there's a tunnel to move; being down is not a failure
+        if active; then
+          start
+          protected || heal
+          status
+        fi
+        ;;
+      show) sudo wg show ${iface} ;;
+      *)
+        {
+          echo "usage: vpn <command>"
+          echo
+          echo "  up|connect [where]  bring the tunnel up (optionally on a new server)"
+          echo "  down                bring it down"
+          echo "  toggle              flip it"
+          echo "  reconnect           restart on the current server"
+          echo "  switch <where>      pick a new server and connect"
+          echo "  status              where you are, and whether Nord agrees you're covered"
+          echo "  current             the server the tunnel points at"
+          echo "  list [where]        servers with their load"
+          echo "  countries           everywhere Nord has WireGuard servers"
+          echo "  refresh             re-fetch the cached country list"
+          echo "  default             forget the pick, go back to the one in the config"
+          echo "  show                wg show (needs sudo)"
+          echo
+          echo "<where> is a country (\"France\", \"fr\"), a city (\"Paris\") or a server"
+          echo "(\"fr1178\"). Switching takes effect immediately — no rebuild."
+        } >&2
+        exit 1
+        ;;
+      esac
+    '';
+  };
 
   # Prints the two lines to paste into a host config, for pinning the
   # fallback server the tunnel starts on before anything else is picked.
-  nordPick = pkgs.writeShellScriptBin "nordvpn-pick" ''
-    set -uo pipefail
-    export PATH=${makeBinPath [pkgs.curl pkgs.jq pkgs.coreutils pkgs.gawk pkgs.findutils]}:$PATH
+  nordPick = pkgs.writeShellApplication {
+    name = "nordvpn-pick";
+    runtimeInputs = [pkgs.curl pkgs.jq pkgs.coreutils pkgs.gawk pkgs.findutils];
+    bashOptions = ["nounset" "pipefail"];
+    text = ''
+      ${apiLib}
 
-    ${apiLib}
-
-    line=$(resolve "''${1:-}" 1) || exit 1
-    [ -n "$line" ] || {
-      echo "no WireGuard server matches: ''${1:-}" >&2
-      exit 1
-    }
-    IFS=$'\t' read -r host ip load country code city pub <<<"$line"
-    echo "# $host  ($country, $city, load $load%)"
-    echo "nordvpn.endpoint = \"$ip:51820\";"
-    echo "nordvpn.publicKey = \"$pub\";"
-  '';
+      line=$(resolve "''${1:-}" 1) || exit 1
+      [ -n "$line" ] || {
+        echo "no WireGuard server matches: ''${1:-}" >&2
+        exit 1
+      }
+      IFS=$'\t' read -r host ip load country code city pub <<<"$line"
+      echo "# $host  ($country, $city, load $load%)"
+      echo "nordvpn.endpoint = \"$ip:51820\";"
+      echo "nordvpn.publicKey = \"$pub\";"
+    '';
+  };
 
   # rofi front-end: polybar right-click, and a launcher entry so it is
   # reachable from mod+d as well. Everything it does is a `vpn` command, so
   # the menu and the shell can't drift apart.
-  vpnMenu = pkgs.writeShellScriptBin "vpn-menu" ''
-    set -uo pipefail
-    export PATH=${makeBinPath [pkgs.systemd pkgs.coreutils pkgs.curl pkgs.jq pkgs.gnused pkgs.gawk pkgs.findutils pkgs.libnotify]}:/run/current-system/sw/bin:$PATH
+  vpnMenu = pkgs.writeShellApplication {
+    name = "vpn-menu";
+    runtimeInputs = [pkgs.systemd pkgs.coreutils pkgs.curl pkgs.jq pkgs.gnused pkgs.gawk pkgs.findutils pkgs.libnotify "/run/current-system/sw"];
+    bashOptions = ["nounset" "pipefail"];
+    text = ''
+      ${apiLib}
 
-    ${apiLib}
+      active() { systemctl is-active --quiet ${unit}; }
+      note() { notify-send -a vpn "NordVPN" "$1"; }
+      warn() { notify-send -a vpn -u critical "NordVPN" "$1"; }
 
-    active() { systemctl is-active --quiet ${unit}; }
-    note() { notify-send -a vpn "NordVPN" "$1"; }
-    warn() { notify-send -a vpn -u critical "NordVPN" "$1"; }
+      menu() { rofi -dmenu -i -p "$1" -mesg "$2"; }
 
-    menu() { rofi -dmenu -i -p "$1" -mesg "$2"; }
+      # Connecting can take a few seconds (API lookup, handshake, and a retry if
+      # the server turned out to be dead), and rofi is already gone by then —
+      # so say what's happening, then say how it went.
+      connect_to() { # $1 = what to say we're doing, rest = vpn arguments
+        local what=$1
+        shift
+        note "connecting''${what:+ — $what}…"
+        out=$(${vpnCtl}/bin/vpn "$@" 2>&1)
+        case "$out" in
+        *"protected=true"*) note "$out" ;;
+        *) warn "$out" ;;
+        esac
+      }
 
-    # Connecting can take a few seconds (API lookup, handshake, and a retry if
-    # the server turned out to be dead), and rofi is already gone by then —
-    # so say what's happening, then say how it went.
-    connect_to() { # $1 = what to say we're doing, rest = vpn arguments
-      local what=$1
-      shift
-      note "connecting''${what:+ — $what}…"
-      out=$(${vpnCtl}/bin/vpn "$@" 2>&1)
+      if active; then
+        header="connected · $(current_label)"
+        toggle="󰦞  Disconnect"
+      else
+        header="disconnected · would use $(current_label)"
+        toggle="󰦝  Connect"
+      fi
+
+      # every row is "<icon>  <label>", so the label is what's past the first
+      # double space — favourites need no case of their own
+      rows() {
+        printf '%s\n' "$toggle"
+        printf '%s\n' "󰑓  Reconnect"
+        printf '%s\n' "󰓅  Fastest server anywhere"
+        ${concatMapStringsSep "\n      " (c: "printf '%s\\n' ${escapeShellArg "󰈿  ${c}"}") cfg.favourites}
+        printf '%s\n' "󰇧  Country…"
+        printf '%s\n' "󰒋  Server in this country…"
+        printf '%s\n' "󰋼  Status"
+        printf '%s\n' "󰑐  Refresh server list"
+        printf '%s\n' "󰜉  Back to the config default"
+      }
+
+      choice=$(rows | menu "vpn" "$header") || exit 0
+
+      # every row is "<icon>  <label>"
+      label=''${choice#*  }
+
+      case "$label" in
+      Disconnect)
+        ${vpnCtl}/bin/vpn down >/dev/null
+        note "disconnected"
+        ;;
+
+      Connect) connect_to "" up ;;
+
+      Reconnect) connect_to "$(current_label)" reconnect ;;
+
+      "Fastest server anywhere") connect_to "fastest anywhere" fastest ;;
+
+      Status)
+        note "$(${vpnCtl}/bin/vpn status)"
+        ;;
+
+      "Refresh server list")
+        if fetch_countries; then
+          note "cached $(jq length "$countries") countries"
+        else
+          warn "couldn't refresh the server list"
+        fi
+        ;;
+
+      # `vpn default` reconnects by itself if the tunnel is up
+      "Back to the config default") connect_to "the built-in default" default ;;
+
+      "Country…")
+        have_countries || {
+          warn "no cached server list, and the API is unreachable"
+          exit 1
+        }
+        pickC=$(jq -r '.[].name' "$countries" | sort |
+          menu "country" "everywhere Nord has WireGuard servers") || exit 0
+        [ -n "$pickC" ] || exit 0
+
+        # a country picked — now how precise do you want to be about it
+        sub=$({
+          printf '󰓅  Fastest in %s\n' "$pickC"
+          jq -r --arg c "$pickC" '.[] | select(.name==$c) | .cities[].name' "$countries" |
+            sort | while IFS= read -r city; do
+            [ -n "$city" ] && printf '󰇧  %s\n' "$city"
+          done
+          printf '%s\n' "󰒋  Pick a server…"
+        } | menu "$pickC" "fastest in $pickC, a city, or one named server") || exit 0
+        subLabel=''${sub#*  }
+
+        case "$subLabel" in
+        "Fastest in $pickC") connect_to "$pickC" up "$pickC" ;;
+        "Pick a server…") exec ${vpnMenuServers}/bin/vpn-menu-servers "$pickC" ;;
+        "") exit 0 ;;
+        *) connect_to "$subLabel" up "$subLabel" ;;
+        esac
+        ;;
+
+      "Server in this country…")
+        here=$(state_field country)
+        exec ${vpnMenuServers}/bin/vpn-menu-servers "$here"
+        ;;
+
+      # a favourite
+      "") exit 0 ;;
+      *) connect_to "$label" up "$label" ;;
+      esac
+    '';
+  };
+
+  # The one list that has to come from the API live, because it carries each
+  # server's load — split out so both ways into it are one exec away.
+  vpnMenuServers = pkgs.writeShellApplication {
+    name = "vpn-menu-servers";
+    runtimeInputs = [pkgs.systemd pkgs.coreutils pkgs.curl pkgs.jq pkgs.gnused pkgs.gawk pkgs.findutils pkgs.libnotify "/run/current-system/sw"];
+    bashOptions = ["nounset" "pipefail"];
+    text = ''
+      ${apiLib}
+
+      note() { notify-send -a vpn "NordVPN" "$1"; }
+      warn() { notify-send -a vpn -u critical "NordVPN" "$1"; }
+
+      where="''${1:-}"
+      list=$(resolve "$where" 25) || {
+        warn "couldn't get a server list''${where:+ for $where}"
+        exit 1
+      }
+      [ -n "$list" ] || {
+        warn "no WireGuard servers''${where:+ in $where}"
+        exit 1
+      }
+
+      pick=$(printf '%s\n' "$list" |
+        awk -F'\t' '{printf "%-22s %-14s load %3s%%\n", $1, $6, $3}' |
+        rofi -dmenu -i -p "server" -mesg "''${where:-fastest first} · lower load is better") || exit 0
+      host=''${pick%% *}
+      [ -n "$host" ] || exit 0
+
+      # Straight from the list we already have: no second lookup, and the key
+      # that belongs to this exact server comes with it.
+      line=$(printf '%s\n' "$list" | awk -F'\t' -v h="$host" '$1==h && !seen++ {print}')
+      [ -n "$line" ] || exit 0
+
+      note "connecting — $host…"
+      printf '%s\n' "$line" | save_server || {
+        warn "couldn't write $state"
+        exit 1
+      }
+      out=$(${vpnCtl}/bin/vpn reconnect 2>&1)
       case "$out" in
       *"protected=true"*) note "$out" ;;
       *) warn "$out" ;;
       esac
-    }
-
-    if active; then
-      header="connected · $(current_label)"
-      toggle="󰦞  Disconnect"
-    else
-      header="disconnected · would use $(current_label)"
-      toggle="󰦝  Connect"
-    fi
-
-    # every row is "<icon>  <label>", so the label is what's past the first
-    # double space — favourites need no case of their own
-    rows() {
-      printf '%s\n' "$toggle"
-      printf '%s\n' "󰑓  Reconnect"
-      printf '%s\n' "󰓅  Fastest server anywhere"
-      ${concatMapStringsSep "\n      " (c: "printf '%s\\n' ${escapeShellArg "󰈿  ${c}"}") cfg.favourites}
-      printf '%s\n' "󰇧  Country…"
-      printf '%s\n' "󰒋  Server in this country…"
-      printf '%s\n' "󰋼  Status"
-      printf '%s\n' "󰑐  Refresh server list"
-      printf '%s\n' "󰜉  Back to the config default"
-    }
-
-    choice=$(rows | menu "vpn" "$header") || exit 0
-
-    # every row is "<icon>  <label>"
-    label=''${choice#*  }
-
-    case "$label" in
-    Disconnect)
-      ${vpnCtl}/bin/vpn down >/dev/null
-      note "disconnected"
-      ;;
-
-    Connect) connect_to "" up ;;
-
-    Reconnect) connect_to "$(current_label)" reconnect ;;
-
-    "Fastest server anywhere") connect_to "fastest anywhere" fastest ;;
-
-    Status)
-      note "$(${vpnCtl}/bin/vpn status)"
-      ;;
-
-    "Refresh server list")
-      if fetch_countries; then
-        note "cached $(jq length "$countries") countries"
-      else
-        warn "couldn't refresh the server list"
-      fi
-      ;;
-
-    # `vpn default` reconnects by itself if the tunnel is up
-    "Back to the config default") connect_to "the built-in default" default ;;
-
-    "Country…")
-      have_countries || {
-        warn "no cached server list, and the API is unreachable"
-        exit 1
-      }
-      pickC=$(jq -r '.[].name' "$countries" | sort |
-        menu "country" "everywhere Nord has WireGuard servers") || exit 0
-      [ -n "$pickC" ] || exit 0
-
-      # a country picked — now how precise do you want to be about it
-      sub=$({
-        printf '󰓅  Fastest in %s\n' "$pickC"
-        jq -r --arg c "$pickC" '.[] | select(.name==$c) | .cities[].name' "$countries" |
-          sort | while IFS= read -r city; do
-          [ -n "$city" ] && printf '󰇧  %s\n' "$city"
-        done
-        printf '%s\n' "󰒋  Pick a server…"
-      } | menu "$pickC" "fastest in $pickC, a city, or one named server") || exit 0
-      subLabel=''${sub#*  }
-
-      case "$subLabel" in
-      "Fastest in $pickC") connect_to "$pickC" up "$pickC" ;;
-      "Pick a server…") exec ${vpnMenuServers}/bin/vpn-menu-servers "$pickC" ;;
-      "") exit 0 ;;
-      *) connect_to "$subLabel" up "$subLabel" ;;
-      esac
-      ;;
-
-    "Server in this country…")
-      here=$(state_field country)
-      exec ${vpnMenuServers}/bin/vpn-menu-servers "$here"
-      ;;
-
-    # a favourite
-    "") exit 0 ;;
-    *) connect_to "$label" up "$label" ;;
-    esac
-  '';
-
-  # The one list that has to come from the API live, because it carries each
-  # server's load — split out so both ways into it are one exec away.
-  vpnMenuServers = pkgs.writeShellScriptBin "vpn-menu-servers" ''
-    set -uo pipefail
-    export PATH=${makeBinPath [pkgs.systemd pkgs.coreutils pkgs.curl pkgs.jq pkgs.gnused pkgs.gawk pkgs.findutils pkgs.libnotify]}:/run/current-system/sw/bin:$PATH
-
-    ${apiLib}
-
-    note() { notify-send -a vpn "NordVPN" "$1"; }
-    warn() { notify-send -a vpn -u critical "NordVPN" "$1"; }
-
-    where="''${1:-}"
-    list=$(resolve "$where" 25) || {
-      warn "couldn't get a server list''${where:+ for $where}"
-      exit 1
-    }
-    [ -n "$list" ] || {
-      warn "no WireGuard servers''${where:+ in $where}"
-      exit 1
-    }
-
-    pick=$(printf '%s\n' "$list" |
-      awk -F'\t' '{printf "%-22s %-14s load %3s%%\n", $1, $6, $3}' |
-      rofi -dmenu -i -p "server" -mesg "''${where:-fastest first} · lower load is better") || exit 0
-    host=''${pick%% *}
-    [ -n "$host" ] || exit 0
-
-    # Straight from the list we already have: no second lookup, and the key
-    # that belongs to this exact server comes with it.
-    line=$(printf '%s\n' "$list" | awk -F'\t' -v h="$host" '$1==h && !seen++ {print}')
-    [ -n "$line" ] || exit 0
-
-    note "connecting — $host…"
-    printf '%s\n' "$line" | save_server || {
-      warn "couldn't write $state"
-      exit 1
-    }
-    out=$(${vpnCtl}/bin/vpn reconnect 2>&1)
-    case "$out" in
-    *"protected=true"*) note "$out" ;;
-    *) warn "$out" ;;
-    esac
-  '';
+    '';
+  };
 in {
   # NordVPN over plain WireGuard (what Nord calls NordLynx). No Nord client,
   # no proprietary daemon: just wg-quick with your account's NordLynx private

@@ -18,9 +18,9 @@ with lib; let
   #     password: hunter2
   #     url: https://github.com
   #     notes: recovery codes are in the safe
+  # what pwLib needs on PATH, for every script that includes it
+  pwDeps = [pkgs.sops pkgs.jq pkgs.xclip pkgs.clipmenu pkgs.coreutils];
   pwLib = ''
-    export PATH=${makeBinPath [pkgs.sops pkgs.jq pkgs.xclip pkgs.clipmenu pkgs.coreutils]}:$PATH
-
     store="''${PASSWORD_STORE_FILE:-${cfg.file}}"
 
     die() {
@@ -59,84 +59,92 @@ with lib; let
     }
   '';
 
-  pw = pkgs.writeShellScriptBin "pw" ''
-    set -euo pipefail
-    ${pwLib}
+  pw = pkgs.writeShellApplication {
+    name = "pw";
+    runtimeInputs = pwDeps;
+    text = ''
+      ${pwLib}
 
-    usage() {
-      cat >&2 <<'USAGE'
-    usage:
-      pw                 pick an entry (rofi), copy its password
-      pw <entry>         copy <entry>'s password to the clipboard
-      pw -u <entry>      copy the username instead
-      pw show <entry>    print every field of <entry>
-      pw list            list entry names
-      pw edit            open the store in $EDITOR through sops
-    USAGE
-      exit 1
-    }
+      usage() {
+        cat >&2 <<'USAGE'
+      usage:
+        pw                 pick an entry (rofi), copy its password
+        pw <entry>         copy <entry>'s password to the clipboard
+        pw -u <entry>      copy the username instead
+        pw show <entry>    print every field of <entry>
+        pw list            list entry names
+        pw edit            open the store in $EDITOR through sops
+      USAGE
+        exit 1
+      }
 
-    # $1 entry, $2 field. Note the explicit `|| exit`: `die` inside a command
-    # substitution only kills the subshell, so the value has to be captured
-    # and checked here rather than passed straight to clip.
-    copy() {
-      local json val
-      json=$(decrypt) || exit 1
-      val=$(printf '%s' "$json" | jq -er --arg e "$1" --arg f "$2" '.[$e][$f] // empty') ||
-        die "no $2 for '$1'"
-      clip "$val"
-      echo "copied $2 for $1 (clears in ${toString cfg.clearAfter}s)"
-    }
+      # $1 entry, $2 field. Note the explicit `|| exit`: `die` inside a command
+      # substitution only kills the subshell, so the value has to be captured
+      # and checked here rather than passed straight to clip.
+      copy() {
+        local json val
+        json=$(decrypt) || exit 1
+        val=$(printf '%s' "$json" | jq -er --arg e "$1" --arg f "$2" '.[$e][$f] // empty') ||
+          die "no $2 for '$1'"
+        clip "$val"
+        echo "copied $2 for $1 (clears in ${toString cfg.clearAfter}s)"
+      }
 
-    case "''${1:-}" in
-    "")
-      entry=$(decrypt | jq -r 'keys[]' | ${pkgs.rofi}/bin/rofi -dmenu -i -p password) || exit 0
-      [ -n "$entry" ] || exit 0
-      copy "$entry" password
-      ;;
-    list | ls) decrypt | jq -r 'keys[]' ;;
-    edit) exec sops "$store" ;;
-    show)
-      [ $# -eq 2 ] || usage
-      decrypt | jq -er --arg e "$2" '.[$e] // empty | to_entries[] | "\(.key): \(.value)"' ||
-        die "no such entry: $2"
-      ;;
-    -u)
-      [ $# -eq 2 ] || usage
-      copy "$2" username
-      ;;
-    -h | --help) usage ;;
-    *)
-      [ $# -eq 1 ] || usage
-      copy "$1" password
-      ;;
-    esac
-  '';
+      case "''${1:-}" in
+      "")
+        entry=$(decrypt | jq -r 'keys[]' | ${pkgs.rofi}/bin/rofi -dmenu -i -p password) || exit 0
+        [ -n "$entry" ] || exit 0
+        copy "$entry" password
+        ;;
+      list | ls) decrypt | jq -r 'keys[]' ;;
+      edit) exec sops "$store" ;;
+      show)
+        [ $# -eq 2 ] || usage
+        decrypt | jq -er --arg e "$2" '.[$e] // empty | to_entries[] | "\(.key): \(.value)"' ||
+          die "no such entry: $2"
+        ;;
+      -u)
+        [ $# -eq 2 ] || usage
+        copy "$2" username
+        ;;
+      -h | --help) usage ;;
+      *)
+        [ $# -eq 1 ] || usage
+        copy "$1" password
+        ;;
+      esac
+    '';
+  };
 
   # rofi script mode, same shape as the bookmarks/remote tabs in rofi.nix:
   # listed with no arguments, re-invoked with the chosen line as $1.
   # Selecting an entry copies its password; printing nothing closes rofi.
-  rofi-passwords = pkgs.writeShellScriptBin "rofi-passwords" ''
-    ${pwLib}
+  rofi-passwords = pkgs.writeShellApplication {
+    name = "rofi-passwords";
+    runtimeInputs = pwDeps;
+    bashOptions = [];
+    text = ''
+      ${pwLib}
 
-    empty="(no password store yet - see SOPS-SETUP.md)"
+      empty="(no password store yet - see SOPS-SETUP.md)"
 
-    if [ -z "''${1:-}" ]; then
-      # a store that isn't set up yet shouldn't make the tab look broken
-      entries=$(decrypt 2>/dev/null | jq -r 'keys[]' 2>/dev/null) || entries=""
-      if [ -z "$entries" ]; then
-        printf '%s\n' "$empty"
-      else
-        printf '%s\n' "$entries"
+      if [ -z "''${1:-}" ]; then
+        # a store that isn't set up yet shouldn't make the tab look broken
+        entries=$(decrypt 2>/dev/null | jq -r 'keys[]' 2>/dev/null) || entries=""
+        if [ -z "$entries" ]; then
+          printf '%s\n' "$empty"
+        else
+          printf '%s\n' "$entries"
+        fi
+        exit 0
       fi
-      exit 0
-    fi
 
-    [ "$1" != "$empty" ] || exit 0
+      [ "$1" != "$empty" ] || exit 0
 
-    pass=$(decrypt | jq -er --arg e "$1" '.[$e].password // empty') || exit 0
-    clip "$pass"
-  '';
+      pass=$(decrypt | jq -er --arg e "$1" '.[$e].password // empty') || exit 0
+      clip "$pass"
+    '';
+  };
 in {
   # A password manager that reuses the sops setup rather than adding a second
   # encrypted store: entries live in secrets/passwords.yaml, encrypted to your
