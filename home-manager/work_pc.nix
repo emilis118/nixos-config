@@ -14,6 +14,7 @@
     ./features/cern-dfs.nix
     ./features/bambu-studio.nix
     ./features/freecad.nix
+    ./features/crafts.nix
   ];
 
   # workspace names / window assignments live in features/i3-profile.nix

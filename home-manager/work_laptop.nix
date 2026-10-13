@@ -12,6 +12,7 @@
     ./features/thunderbird.nix
     ./features/cern-dfs.nix
     ./features/bambu-studio.nix
+    ./features/crafts.nix
   ];
 
   # Single internal display: same workspace layout as work_pc but without
