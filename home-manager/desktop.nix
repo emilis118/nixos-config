@@ -14,6 +14,7 @@
     ./features/wallpaper.nix
     ./features/i3.nix
     ./features/flameshot.nix
+    ./features/onlyoffice.nix
   ];
 
   polybarModules.gpu = true;
