@@ -539,6 +539,12 @@
   }
   {
     cat = "mine";
+    syntax = "polybar-docky [on|off|toggle|colors]";
+    desc = "swap the Docky bar in for this session; i3 restart or login brings the main bar back";
+    example = "polybar-docky";
+  }
+  {
+    cat = "mine";
     syntax = "marketplace-toggle";
     desc = "stop/resume the marketplace poller; right-click its polybar icon does this";
     example = "marketplace-toggle off";

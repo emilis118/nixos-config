@@ -1,0 +1,7 @@
+/* Shown when the confirmation answer was neither yes nor no. */
+
+@import "confirm.rasi"
+
+window {
+    width: 340px;
+}

@@ -1,15 +1,22 @@
 /* Volume applet in the adi1090x style: one row of icon buttons.
    Anchored to the monitor's top-right; the launcher script overrides
    x-offset so the window's right edge lands under the pointer (the
-   click on the polybar volume icon). y-offset clears the bar. */
+   click on the polybar volume icon). y-offset clears the bar.
+   Every colour (and the corner radius) is env(ROFI_*, default): the defaults
+   are the main bar's palette, and the Docky bar (features/polybar-docky.nix)
+   exports its own, so anything rofi opens from that bar comes out in its
+   colours without a second set of themes. The edge and y-offset are too:
+   the bottom-docked Docky bar flips them to open the popup above itself. */
 
 * {
-    bg:        #282A2E;
-    bg-alt:    #373B41;
-    fg:        #C5C8C6;
-    primary:   #F0C674;
-    alert:     #A54242;
-    disabled:  #707880;
+    bg:        env(ROFI_BG, #282A2E);
+    bg-alt:    env(ROFI_BG_ALT, #373B41);
+    fg:        env(ROFI_FG, #C5C8C6);
+    primary:   env(ROFI_PRIMARY, #F0C674);
+    alert:     env(ROFI_ALERT, #A54242);
+    on-primary: env(ROFI_ON_PRIMARY, #282A2E);
+    radius:    env(ROFI_RADIUS, 4px);
+    disabled:  env(ROFI_DISABLED, #707880);
 
     background-color: transparent;
     text-color: @fg;
@@ -17,14 +24,14 @@
 }
 
 window {
-    location: northeast;
-    anchor:   northeast;
-    y-offset: 40px;
+    location: env(ROFI_POPUP_CORNER, northeast);
+    anchor:   env(ROFI_POPUP_CORNER, northeast);
+    y-offset: env(ROFI_POPUP_Y, 40px);
     width:    320px;
     background-color: @bg;
     border: 2px;
     border-color: @primary;
-    border-radius: 4px;
+    border-radius: @radius;
     padding: 10px;
 }
 
@@ -35,7 +42,7 @@ mainbox {
 
 message {
     background-color: @bg-alt;
-    border-radius: 4px;
+    border-radius: @radius;
     padding: 6px;
 }
 
@@ -53,7 +60,7 @@ listview {
 
 element {
     padding: 10px 0px;
-    border-radius: 4px;
+    border-radius: @radius;
     background-color: @bg-alt;
     cursor: pointer;
 }
@@ -66,7 +73,7 @@ element-text {
 
 element selected.normal {
     background-color: @primary;
-    text-color: @bg;
+    text-color: @on-primary;
 }
 
 /* muted buttons are passed as urgent rows */
@@ -76,5 +83,5 @@ element normal.urgent, element alternate.urgent {
 
 element selected.urgent {
     background-color: @alert;
-    text-color: @bg;
+    text-color: @on-primary;
 }

@@ -1,13 +1,19 @@
-/* rofi theme matching the polybar colors (dotfiles/i3/polybar.ini) */
+/* rofi theme matching the polybar colors (dotfiles/i3/polybar.ini)
+   Every colour (and the corner radius) is env(ROFI_*, default): the defaults
+   are the main bar's palette, and the Docky bar (features/polybar-docky.nix)
+   exports its own, so anything rofi opens from that bar comes out in its
+   colours without a second set of themes. */
 
 * {
-    bg:        #282A2E;
-    bg-alt:    #373B41;
-    fg:        #C5C8C6;
-    primary:   #F0C674;
-    secondary: #8ABEB7;
-    alert:     #A54242;
-    disabled:  #707880;
+    bg:        env(ROFI_BG, #282A2E);
+    bg-alt:    env(ROFI_BG_ALT, #373B41);
+    fg:        env(ROFI_FG, #C5C8C6);
+    primary:   env(ROFI_PRIMARY, #F0C674);
+    secondary: env(ROFI_SECONDARY, #8ABEB7);
+    alert:     env(ROFI_ALERT, #A54242);
+    on-primary: env(ROFI_ON_PRIMARY, #282A2E);
+    radius:    env(ROFI_RADIUS, 4px);
+    disabled:  env(ROFI_DISABLED, #707880);
 
     background-color: transparent;
     text-color: @fg;
@@ -18,7 +24,7 @@ window {
     background-color: @bg;
     border: 2px;
     border-color: @primary;
-    border-radius: 4px;
+    border-radius: @radius;
     padding: 10px;
     width: 42%;
 }
@@ -31,7 +37,7 @@ mainbox {
 
 inputbar {
     background-color: @bg-alt;
-    border-radius: 4px;
+    border-radius: @radius;
     padding: 8px 10px;
     spacing: 8px;
     children: [prompt, entry];
@@ -56,7 +62,7 @@ listview {
 element {
     padding: 6px 10px;
     spacing: 10px;
-    border-radius: 4px;
+    border-radius: @radius;
 }
 
 element-icon {
@@ -90,19 +96,19 @@ mode-switcher {
 
 button {
     padding: 6px;
-    border-radius: 4px;
+    border-radius: @radius;
     background-color: @bg-alt;
     text-color: @disabled;
 }
 
 button selected {
     background-color: @primary;
-    text-color: @bg;
+    text-color: @on-primary;
 }
 
 message {
     background-color: @bg-alt;
-    border-radius: 4px;
+    border-radius: @radius;
     padding: 8px;
 }
 

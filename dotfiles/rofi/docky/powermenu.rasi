@@ -1,0 +1,18 @@
+/* Docky's power menu: the prompt carries the uptime, no search entry. */
+
+@import "menu.rasi"
+
+inputbar {
+    children: [ textbox-prompt-colon, prompt ];
+}
+
+textbox-prompt-colon {
+    background-color: @al;
+    text-color:       @bar;
+    expand:           false;
+    str:              "󰐥";
+}
+
+prompt {
+    padding: 0px 0px 0px 10px;
+}

@@ -1,0 +1,12 @@
+/* Docky's default (dark, red) colours. The scripts in
+   features/polybar-docky.nix pass the palette picked from the bar's colour
+   menu as -theme-str, which overrides these. */
+
+* {
+    al:  #00000000;
+    bg:  #1F1F1FFF;
+    bga: #e5393533;
+    bar: #FFFFFFFF;
+    fg:  #FFFFFFFF;
+    ac:  #e53935FF;
+}

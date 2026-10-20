@@ -1,0 +1,91 @@
+/* Docky's launcher (adi1090x/polybar-themes, simple/docky/scripts/rofi),
+   also used for its colour menu. Iosevka and feather swapped for the Nerd
+   Font the rest of the desktop uses; the scripts pass the prompt glyph
+   (-p, or -display-drun for the launcher). */
+
+@import "colors.rasi"
+
+* {
+    font: "JetBrainsMono Nerd Font 11";
+}
+
+window {
+    transparency:     "real";
+    background-color: @bg;
+    text-color:       @fg;
+    border:           0px 0px 2px 0px;
+    border-color:     @ac;
+    border-radius:    0px;
+    width:            350px;
+    location:         center;
+}
+
+mainbox {
+    background-color: @al;
+    children:         [ inputbar, listview ];
+    spacing:          0px;
+    padding:          0px;
+}
+
+inputbar {
+    children:         [ prompt, entry ];
+    background-color: @ac;
+    text-color:       @bar;
+    expand:           false;
+    padding:          12px;
+}
+
+prompt {
+    background-color: @al;
+    text-color:       @bar;
+}
+
+entry {
+    background-color:  @al;
+    text-color:        @bar;
+    placeholder-color: @bar;
+    placeholder:       "Search...";
+    expand:            true;
+    horizontal-align:  0;
+    padding:           0px 0px 0px 10px;
+    cursor:            text;
+}
+
+listview {
+    background-color: @al;
+    columns:          1;
+    lines:            5;
+    spacing:          5px;
+    cycle:            true;
+    dynamic:          true;
+    layout:           vertical;
+    scrollbar:        false;
+}
+
+element {
+    background-color: @al;
+    text-color:       @fg;
+    orientation:      horizontal;
+    padding:          10px;
+    cursor:           pointer;
+}
+
+element-icon {
+    background-color: transparent;
+    size:             24px;
+    cursor:           inherit;
+}
+
+element-text {
+    background-color: transparent;
+    text-color:       inherit;
+    expand:           true;
+    vertical-align:   0.5;
+    margin:           0px 2.5px;
+    cursor:           inherit;
+}
+
+element selected {
+    background-color: @bga;
+    text-color:       @fg;
+}

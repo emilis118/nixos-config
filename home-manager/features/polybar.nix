@@ -18,6 +18,19 @@ with lib; let
   green = "#8C9440";
   dim = "#707880";
 
+  # Colours for the %{F} tags the scripts print. The defaults are this bar's
+  # palette; a bar launched with POLYBAR_* in its environment (the Docky bar,
+  # features/polybar-docky.nix) gets its own colours from the same scripts.
+  scriptPalette = ''
+    # shellcheck disable=SC2034 # not every script uses every colour
+    {
+        c_icon=''${POLYBAR_ICON:-${yellow}}
+        c_alert=''${POLYBAR_ALERT:-${red}}
+        c_good=''${POLYBAR_GOOD:-${green}}
+        c_dim=''${POLYBAR_DIM:-${dim}}
+    }
+  '';
+
   # The toggle scripts run in polybar tail mode: they loop, re-rendering
   # every second (inotifywait timeout) and *immediately* when a click
   # handler touches the state file, so toggles react without polling lag.
@@ -26,6 +39,7 @@ with lib; let
     runtimeInputs = [pkgs.coreutils pkgs.gawk pkgs.gnugrep pkgs.inotify-tools];
     bashOptions = [];
     text = ''
+      ${scriptPalette}
       STATE_FILE="/tmp/polybar_cpu_monitor_toggle"
 
       if [ ! -f "$STATE_FILE" ]; then
@@ -84,14 +98,14 @@ with lib; let
           [ -n "$TEMP_PATH" ] && TEMP=$(awk '{printf "%.0f", $1/1000}' "$TEMP_PATH" 2>/dev/null)
 
           if grep -q "off" "$STATE_FILE" || [ -z "$TEMP" ]; then
-              echo "%{F${yellow}}CPU%{F-} ''${usage}%"
+              echo "%{F$c_icon}CPU%{F-} ''${usage}%"
               return
           fi
 
           if [ "$TEMP" -gt "80" ]; then
-              echo "%{F${yellow}}CPU%{F-} ''${usage}% %{F${red}}''${TEMP}%{F-}°C"
+              echo "%{F$c_icon}CPU%{F-} ''${usage}% %{F$c_alert}''${TEMP}%{F-}°C"
           else
-              echo "%{F${yellow}}CPU%{F-} ''${usage}% ''${TEMP}°C"
+              echo "%{F$c_icon}CPU%{F-} ''${usage}% ''${TEMP}°C"
           fi
       }
 
@@ -116,6 +130,7 @@ with lib; let
     runtimeInputs = [pkgs.coreutils pkgs.gawk pkgs.gnugrep pkgs.procps pkgs.inotify-tools];
     bashOptions = [];
     text = ''
+      ${scriptPalette}
       STATE_FILE="/tmp/polybar_memory_monitor_toggle"
 
       if [ ! -f "$STATE_FILE" ]; then
@@ -139,12 +154,12 @@ with lib; let
 
           if grep -q "1" "$STATE_FILE"; then
               percentage=$(awk "BEGIN {printf \"%.0f\n\", $used/$total*100}")
-              echo "%{F${yellow}}RAM%{F-} ''${percentage} %"
+              echo "%{F$c_icon}RAM%{F-} ''${percentage} %"
           elif grep -q "2" "$STATE_FILE"; then
-              echo "%{F${yellow}}RAM%{F-} ''${used}/''${total} GB"
+              echo "%{F$c_icon}RAM%{F-} ''${used}/''${total} GB"
           elif grep -q "3" "$STATE_FILE"; then
               percentage=$(awk "BEGIN {printf \"%.0f\n\", $used/$total*100}")
-              echo "%{F${yellow}}RAM%{F-} ''${percentage}% ''${used}/''${total} GB"
+              echo "%{F$c_icon}RAM%{F-} ''${percentage}% ''${used}/''${total} GB"
           else
               echo "SOMETHING WRONG WITH RAM"
           fi
@@ -164,6 +179,7 @@ with lib; let
     runtimeInputs = [pkgs.coreutils pkgs.gnugrep pkgs.inotify-tools "/run/current-system/sw"];
     bashOptions = [];
     text = ''
+      ${scriptPalette}
       if ! command -v nvidia-smi >/dev/null 2>&1; then
           exit 0
       fi
@@ -186,7 +202,7 @@ with lib; let
       render() {
           if grep -q "off" "$STATE_FILE"; then
               LOAD=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits)
-              echo "%{F${yellow}}GPU%{F-} ''${LOAD}%"
+              echo "%{F$c_icon}GPU%{F-} ''${LOAD}%"
               return
           fi
 
@@ -196,9 +212,9 @@ with lib; let
           LOAD=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits)
 
           if [ "''${TEMP}" -gt "70" ]; then
-              echo "%{F${yellow}}GPU%{F-} ''${LOAD}% %{F${red}}''${TEMP}%{F-}°C ''${MEM_USED}/''${MEM_TOTAL} MB"
+              echo "%{F$c_icon}GPU%{F-} ''${LOAD}% %{F$c_alert}''${TEMP}%{F-}°C ''${MEM_USED}/''${MEM_TOTAL} MB"
           else
-              echo "%{F${yellow}}GPU%{F-} ''${LOAD}% ''${TEMP}°C ''${MEM_USED}/''${MEM_TOTAL} MB"
+              echo "%{F$c_icon}GPU%{F-} ''${LOAD}% ''${TEMP}°C ''${MEM_USED}/''${MEM_TOTAL} MB"
           fi
       }
 
@@ -219,6 +235,7 @@ with lib; let
     runtimeInputs = [pkgs.coreutils pkgs.gawk pkgs.inotify-tools];
     bashOptions = [];
     text = ''
+      ${scriptPalette}
       STATE_FILE="/tmp/polybar_battery_toggle"
 
       [ -f "$STATE_FILE" ] || echo "1" > "$STATE_FILE"
@@ -293,15 +310,15 @@ with lib; let
 
           # "Not charging" is a plugged-in battery held at its charge limit
           if [ "$state" = "Full" ] || { [ "$cap" -ge 99 ] && [ "$state" != "Discharging" ]; }; then
-              echo "%{F${yellow}}󰂄%{F-} Full"
+              echo "%{F$c_icon}󰂄%{F-} Full"
               return
           fi
 
           ico=$(icon "$cap" "$state")
           if [ "$state" = "Discharging" ] && [ "$cap" -le 15 ]; then
-              out="%{F${red}}''${ico} ''${cap}%%{F-}"
+              out="%{F$c_alert}''${ico} ''${cap}%%{F-}"
           else
-              out="%{F${yellow}}''${ico}%{F-} ''${cap}%"
+              out="%{F$c_icon}''${ico}%{F-} ''${cap}%"
           fi
 
           [ "$view" = "1" ] || out="$out $(watts) W"
@@ -325,6 +342,7 @@ with lib; let
     runtimeInputs = [pkgs.coreutils pkgs.gawk pkgs.gnugrep pkgs.iproute2 pkgs.inotify-tools];
     bashOptions = [];
     text = ''
+      ${scriptPalette}
       STATE_FILE="/tmp/polybar_eth_toggle"
 
       if [ ! -f "$STATE_FILE" ]; then
@@ -348,9 +366,9 @@ with lib; let
               if [ "$(cat "$path/operstate")" = "up" ]; then
                   if grep -q "2" "$STATE_FILE"; then
                       ip4=$(ip -o -4 addr show dev "$dev" | awk '{print $4}' | cut -d/ -f1 | head -1)
-                      echo "%{F${yellow}}󰈁%{F-} ''${ip4}"
+                      echo "%{F$c_icon}󰈁%{F-} ''${ip4}"
                   else
-                      echo "%{F${yellow}}󰈁%{F-}"
+                      echo "%{F$c_icon}󰈁%{F-}"
                   fi
                   return
               fi
@@ -376,6 +394,7 @@ with lib; let
     runtimeInputs = [pkgs.coreutils pkgs.gnugrep pkgs.networkmanager pkgs.inotify-tools];
     bashOptions = [];
     text = ''
+      ${scriptPalette}
       STATE_FILE="/tmp/polybar_wlan_toggle"
 
       if [ ! -f "$STATE_FILE" ]; then
@@ -401,9 +420,9 @@ with lib; let
                   if grep -q "2" "$STATE_FILE"; then
                       # only pay for nmcli when the name is on screen
                       ssid=$(nmcli -t -f GENERAL.CONNECTION device show "$dev" 2>/dev/null | cut -d: -f2-)
-                      echo "%{F${yellow}}󰖩%{F-} ''${ssid}"
+                      echo "%{F$c_icon}󰖩%{F-} ''${ssid}"
                   else
-                      echo "%{F${yellow}}󰖩%{F-}"
+                      echo "%{F$c_icon}󰖩%{F-}"
                   fi
                   return
               fi
@@ -411,7 +430,7 @@ with lib; let
 
           # radio present but down: dimmed off icon. No radio at all: nothing
           if [ -n "$found" ]; then
-              echo "%{F${dim}}󰖪%{F-}"
+              echo "%{F$c_dim}󰖪%{F-}"
           else
               echo ""
           fi
@@ -430,6 +449,7 @@ with lib; let
     runtimeInputs = [pkgs.bluez pkgs.coreutils pkgs.gnugrep pkgs.gnused pkgs.inotify-tools];
     bashOptions = [];
     text = ''
+      ${scriptPalette}
       # icon + battery by default; right-click toggles showing the device name
       STATE_FILE="/tmp/polybar_bluetooth_toggle"
 
@@ -449,13 +469,13 @@ with lib; let
       render() {
       # No adapter or powered off: dimmed off icon
       if ! bluetoothctl show 2>/dev/null | grep -q "Powered: yes"; then
-          echo "%{F${dim}}󰂲%{F-}"
+          echo "%{F$c_dim}󰂲%{F-}"
           return
       fi
 
       connected=$(bluetoothctl devices Connected 2>/dev/null)
       if [ -z "$connected" ]; then
-          echo "%{F${dim}}󰂯%{F-}"
+          echo "%{F$c_dim}󰂯%{F-}"
           return
       fi
 
@@ -465,13 +485,13 @@ with lib; let
       name=$(printf '%s' "$line" | cut -d' ' -f3-)
       batt=$(bluetoothctl info "$mac" 2>/dev/null | sed -n 's/.*Battery Percentage.*(\([0-9]*\)).*/\1/p')
 
-      out="%{F${yellow}}󰂱%{F-}"
+      out="%{F$c_icon}󰂱%{F-}"
       if grep -q "on" "$STATE_FILE"; then
           out="$out $name"
       fi
       if [ -n "$batt" ]; then
           if [ "$batt" -le 20 ]; then
-              out="$out %{F${red}}$batt%%{F-}"
+              out="$out %{F$c_alert}$batt%%{F-}"
           else
               out="$out $batt%"
           fi
@@ -493,13 +513,14 @@ with lib; let
     runtimeInputs = [pkgs.systemd pkgs.gnugrep];
     bashOptions = [];
     text = ''
+      ${scriptPalette}
       sys=$(systemctl --failed --no-legend --plain 2>/dev/null | grep -c .)
       usr=$(systemctl --user --failed --no-legend --plain 2>/dev/null | grep -c .)
       total=$((sys + usr))
 
       # Hidden while everything is healthy
       if [ "$total" -gt 0 ]; then
-          echo "%{F${red}}󰀦 $total%{F-}"
+          echo "%{F$c_alert}󰀦 $total%{F-}"
       fi
     '';
   });
@@ -628,11 +649,14 @@ with lib; let
       # Leading padding is load-bearing (the textbox renders the block
       # left-aligned, so cal's own spacing is what lines the columns up);
       # trailing padding is not, and pango drops it anyway.
-      text=$(cal | awk -v d="$(date +%-d)" '
+      # colours follow the rofi theme's (ROFI_* is set by the Docky bar)
+      text=$(cal | awk -v d="$(date +%-d)" \
+          -v hl="''${ROFI_PRIMARY:-${yellow}}" -v dim="''${ROFI_DISABLED:-${dim}}" \
+          -v on="''${ROFI_ON_PRIMARY:-#282A2E}" '
           $0 ~ /^[[:space:]]*$/ { next }                       # cal pads to 8 lines
           { sub(/[ \t]+$/, "") }
-          NR == 1 { print "<span foreground=\"#F0C674\"><b>" $0 "</b></span>"; next }
-          NR == 2 { print "<span foreground=\"#707880\">" $0 "</span>"; next }
+          NR == 1 { print "<span foreground=\"" hl "\"><b>" $0 "</b></span>"; next }
+          NR == 2 { print "<span foreground=\"" dim "\">" $0 "</span>"; next }
           {
               out = ""
               for (i = 0; i < 7; i++) {
@@ -640,7 +664,7 @@ with lib; let
                   if (tok ~ /[0-9]/ && tok + 0 == d) {
                       pad = tok; sub(/[0-9].*/, "", pad)       # keep the alignment space outside the highlight
                       num = substr(tok, length(pad) + 1)
-                      tok = pad "<span background=\"#F0C674\" foreground=\"#282A2E\"><b>" num "</b></span>"
+                      tok = pad "<span background=\"" hl "\" foreground=\"" on "\"><b>" num "</b></span>"
                   }
                   out = out tok (i < 6 ? " " : "")
               }
@@ -660,6 +684,7 @@ with lib; let
     runtimeInputs = [pkgs.systemd pkgs.coreutils pkgs.gnused pkgs.inotify-tools];
     bashOptions = [];
     text = ''
+      ${scriptPalette}
       STATE_FILE="/tmp/polybar_vpn_state"
       [ -f "$STATE_FILE" ] || : >"$STATE_FILE"
 
@@ -669,9 +694,9 @@ with lib; let
               # and not just that you're somewhere (empty until anything is
               # picked - that's the server pinned in the config)
               cc=$(sed -n 's/^countryCode=//p' /var/lib/nordlynx/current 2>/dev/null | head -1)
-              echo "%{F${green}}󰦝''${cc:+ $cc}%{F-}"
+              echo "%{F$c_good}󰦝''${cc:+ $cc}%{F-}"
           else
-              echo "%{F${dim}}󰦞%{F-}"
+              echo "%{F$c_dim}󰦞%{F-}"
           fi
       }
 
@@ -690,14 +715,15 @@ with lib; let
     runtimeInputs = [pkgs.coreutils pkgs.inotify-tools];
     bashOptions = [];
     text = ''
+      ${scriptPalette}
       STATE_FILE="${config.dnd.stateFile}"
       [ -f "$STATE_FILE" ] || echo off >"$STATE_FILE"
 
       render() {
           if [ "$(cat "$STATE_FILE" 2>/dev/null)" = "on" ]; then
-              echo "%{F${red}}󰂛%{F-}"
+              echo "%{F$c_alert}󰂛%{F-}"
           else
-              echo "%{F${dim}}󰂚%{F-}"
+              echo "%{F$c_dim}󰂚%{F-}"
           fi
       }
 
@@ -715,14 +741,15 @@ with lib; let
     runtimeInputs = [pkgs.coreutils pkgs.inotify-tools];
     bashOptions = [];
     text = ''
+      ${scriptPalette}
       FLAG="${config.xdg.stateHome}/marketplace-notifications/disabled"
       mkdir -p "$(dirname "$FLAG")"
 
       render() {
           if [ -e "$FLAG" ]; then
-              echo "%{F${dim}}󰄰%{F-}"
+              echo "%{F$c_dim}󰄰%{F-}"
           else
-              echo "%{F${yellow}}󰄐%{F-}"
+              echo "%{F$c_icon}󰄐%{F-}"
           fi
       }
 
@@ -762,6 +789,8 @@ with lib; let
     ++ ["powermenu"]
   );
 in {
+  imports = [./polybar-docky.nix];
+
   options.polybarModules = {
     backlight = mkEnableOption "screen backlight module in polybar";
     battery = mkEnableOption "battery module in polybar";
