@@ -1,5 +1,6 @@
 {
   pkgs,
+  lib,
   inputs,
   ...
 }: let
@@ -421,4 +422,57 @@ in {
     # PDF viewer for vimtex (view_method = "zathura")
     zathura
   ];
+
+  # Text files opened from thunar/xdg-open go to nvim. Without explicit
+  # defaults, types like markdown/json have no handler and the opener picks
+  # whatever claims them (often zathura). nvim.desktop is Terminal=true, which
+  # gio resolves to xterm, so this entry runs it in alacritty instead.
+  xdg.desktopEntries.nvim-alacritty = {
+    name = "Neovim";
+    genericName = "Text Editor";
+    exec = "alacritty -e nvim %F";
+    icon = "nvim";
+    terminal = false;
+    noDisplay = true;
+    categories = ["Utility" "TextEditor"];
+  };
+
+  xdg.mimeApps = {
+    enable = true;
+    defaultApplications = lib.genAttrs [
+      "text/plain"
+      "text/markdown"
+      "text/x-markdown"
+      "text/csv"
+      "text/x-log"
+      "text/x-python"
+      "text/x-csrc"
+      "text/x-chdr"
+      "text/x-c++src"
+      "text/x-c++hdr"
+      "text/x-java"
+      "text/x-lua"
+      "text/x-nix"
+      "text/x-tex"
+      "text/x-makefile"
+      "text/x-cmake"
+      "text/rust"
+      "text/x-go"
+      "text/html"
+      "text/css"
+      "text/javascript"
+      "text/xml"
+      "application/json"
+      "application/xml"
+      "application/toml"
+      "application/x-yaml"
+      "application/yaml"
+      "application/javascript"
+      "application/x-shellscript"
+      "application/x-perl"
+      "application/x-desktop"
+      "application/x-subrip"
+      "inode/x-empty"
+    ] (_: ["nvim-alacritty.desktop"]);
+  };
 }
