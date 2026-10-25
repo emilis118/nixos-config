@@ -8,7 +8,7 @@ with lib; let
   cfg = config.i3Profile;
 in {
   # The per-host i3 bits that used to be copy-pasted into each
-  # home-manager/<host>.nix: workspace names, window assignments and the
+  # home-manager/<host>.nix: window assignments and the
   # extra keybindings. Hosts opt into a profile instead, the same way they
   # opt into polybarModules / rofiModes.
   options.i3Profile = {
@@ -23,23 +23,22 @@ in {
     xsession.windowManager.i3.extraConfig = mkMerge [
       # shared by every host
       ''
-        set $ws1 "1:Firefox"
-        set $ws2 "2:Terminal"
-        set $ws4 "4:VM"
+        set $ws1 "1"
+        set $ws2 "2"
+        set $ws3 "3"
+        set $ws4 "4"
+        set $ws5 "5"
+        set $ws6 "6"
+        set $ws7 "7"
+        set $ws8 "8"
+        set $ws9 "9"
+        set $ws10 "10"
 
         for_window [class=".*"] border none
         for_window [class=".*\.py"] floating enable
       ''
 
       (mkIf cfg.personal ''
-        set $ws3 "3:Game"
-        set $ws5 "5:Postman"
-        set $ws6 "6"
-        set $ws7 "7:Steam"
-        set $ws8 "8"
-        set $ws9 "9:Discord"
-        set $ws10 "10:Spotify"
-
         for_window [class="net-runelite-client-RuneLite"] floating enable
         for_window [class="net-runelite-launcher-Launcher"] floating enable
 
@@ -88,14 +87,6 @@ in {
       '')
 
       (mkIf cfg.work ''
-        set $ws3 "3"
-        set $ws5 "5"
-        set $ws6 "6"
-        set $ws7 "7"
-        set $ws8 "8"
-        set $ws9 "9:MM"
-        set $ws10 "10:Email"
-
         assign [class="Mattermost"] $ws9
         assign [class="whatsapp-electron"] $ws9
         assign [class="thunderbird"] $ws10
