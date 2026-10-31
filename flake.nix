@@ -24,6 +24,9 @@
     # age-encrypted secrets checked into this repo; see SOPS-SETUP.md
     sops-nix.url = "github:Mic92/sops-nix";
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
+    # last nixpkgs commit with prismlauncher 9.4 (the next one bumps it to
+    # 10.0.0); used only for that package in features/minecraft.nix.
+    nixpkgs-prism.url = "github:nixos/nixpkgs/c2fd2485d685ad6f4ed77b89991af722f282c5c7";
   };
 
   outputs = {
