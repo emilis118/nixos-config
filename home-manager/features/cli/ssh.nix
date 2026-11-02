@@ -22,8 +22,8 @@ with lib; let
 
   # <key name in secrets/common.yaml> -> the blocks that key unlocks.
   # IdentityFile/IdentitiesOnly are filled in below; IdentitiesOnly matters
-  # because the agent started by dotfiles/.zshrc will otherwise offer every
-  # loaded key and a strict server can hit MaxAuthTries before the right one.
+  # because the agent will otherwise offer every loaded key and a strict
+  # server can hit MaxAuthTries before the right one.
   keyed = {
     lab_pc."lab" = {
       HostName = "pxicryolab05.cern.ch";
@@ -63,6 +63,13 @@ with lib; let
     (map (key: withIdentity key keyed.${key})
       (filter (key: keyed ? ${key}) installed));
 in {
+  # One agent per login session, as a systemd user unit, with SSH_AUTH_SOCK
+  # exported through the session variables. The old way — dotfiles/.zshrc
+  # running `eval $(ssh-agent)` if pgrep found none — only put the socket in
+  # that one shell, so git inside nvim, thunar's sftp or anything launched
+  # from rofi couldn't see the agent (and a second shell started another).
+  services.ssh-agent.enable = true;
+
   # ~/.ssh/config, generated so that `ssh lab` picks the right key on its own
   # instead of every call site repeating `-i ~/.ssh/lab_pc`. Host *keys* come
   # from sops (secrets.sshKeys); this is only the routing table that says
@@ -84,8 +91,8 @@ in {
         "*" = {
           # keys are per-host and never forwarded onward
           ForwardAgent = false;
-          # the agent from dotfiles/.zshrc is per-login; letting ssh add the
-          # key on first use is what makes one passphrase prompt per session
+          # letting ssh add the key on first use is what makes one
+          # passphrase prompt per session
           AddKeysToAgent = "yes";
           HashKnownHosts = false;
           UserKnownHostsFile = "~/.ssh/known_hosts";

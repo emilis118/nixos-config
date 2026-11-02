@@ -22,3 +22,8 @@ jobs:
       # only surface at rebuild time on the machine itself.
       - name: nix flake check
         run: nix flake check --no-build --show-trace
+
+      # --no-build above only *instantiates* the formatting derivation; it
+      # never runs alejandra. Build that one check so formatting is enforced.
+      - name: formatting
+        run: nix build .#checks.x86_64-linux.formatting -L

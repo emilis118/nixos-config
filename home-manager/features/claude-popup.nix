@@ -31,7 +31,7 @@
       mkdir -p "$dir"
       cd "$dir"
 
-      # Background matches rofi's (dotfiles/rofi/theme.rasi) and is near
+      # Background is the palette's (features/theme.nix), like rofi's, and near
       # opaque, so the popup reads as a launcher over the windows behind it
       # rather than another 0.8-opacity terminal.
       exec ${pkgs.alacritty}/bin/alacritty \
@@ -40,11 +40,13 @@
         -o 'window.opacity=0.95' \
         -o 'window.padding.x=12' \
         -o 'window.padding.y=10' \
-        -o 'colors.primary.background="#282A2E"' \
+        -o 'colors.primary.background="${config.theme.palette.bg}"' \
         -e ${pkgs.claude-code}/bin/claude
     '';
   };
 in {
+  imports = [./theme.nix];
+
   home.packages = [claudePopup];
 
   xsession.windowManager.i3 = {

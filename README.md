@@ -39,14 +39,16 @@ hosts/
   <host>/hardware-configuration.nix
   shared/global/              imported by every host (boot, nix, locale, fonts, zsh)
   shared/optional/            opt-in per host (i3, kde, nvidia, steam, razer,
-                              blocky, laptop, cern-lab, performance,
-                              remote-access)
+                              blocky, laptop, cern-lab, remote-access)
   shared/users/<user>/        the accounts (emilis everywhere, cryolab on daq-laptop)
 home-manager/
-  <host>.nix                  per-host home profile; mostly toggles + startup commands
+  <host>.nix                  per-host home profile: a role + what sets the host apart
   <host>-<user>.nix           second profile on a host that isn't only mine
+  roles/                      personal.nix / work.nix — the shared feature set of
+                              each kind of machine, on top of global/
   global/                     imported by every profile
-  features/                   one file per program/feature
+  features/                   one file per program/feature (features/laptop.nix is
+                              the battery/backlight/brightness-key toggles)
   features/cli/               shell-side features (zsh, neovim, tmux, git, ...)
 dotfiles/
   .zshrc .zprofile .tmux.conf read into the nix config with builtins.readFile
@@ -177,7 +179,8 @@ own `hosts/shared/optional/` module.
 ## Adding a host
 
 1. `hosts/<name>/configuration.nix` + `hardware-configuration.nix`
-2. `home-manager/<name>.nix`
+2. `home-manager/<name>.nix` — import `roles/personal.nix` or `roles/work.nix`
+   (plus `features/laptop.nix` on a laptop) and add only what differs
 3. add `<name> = {};` to the `hosts` attrset in `flake.nix` — or
    `<name> = {extraHomeUsers = ["someone"];};` if the machine has other
    users, which then need `hosts/shared/users/someone/` and

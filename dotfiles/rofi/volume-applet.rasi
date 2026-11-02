@@ -2,21 +2,23 @@
    Anchored to the monitor's top-right; the launcher script overrides
    x-offset so the window's right edge lands under the pointer (the
    click on the polybar volume icon). y-offset clears the bar.
-   Every colour (and the corner radius) is env(ROFI_*, default): the defaults
-   are the main bar's palette, and the Docky bar (features/polybar-docky.nix)
-   exports its own, so anything rofi opens from that bar comes out in its
-   colours without a second set of themes. The edge and y-offset are too:
-   the bottom-docked Docky bar flips them to open the popup above itself. */
+   Every colour (and the corner radius) is env(ROFI_*, default). The @name@
+   defaults are filled in from the palette in features/theme.nix when nix
+   copies this file into the store (config.theme.rofiThemes). The Docky bar
+   (features/polybar-docky.nix) exports its own, so anything rofi opens from
+   that bar comes out in its colours without a second set of themes. The
+   edge and y-offset are too: the bottom-docked Docky bar flips them to open
+   the popup above itself. */
 
 * {
-    bg:        env(ROFI_BG, #282A2E);
-    bg-alt:    env(ROFI_BG_ALT, #373B41);
-    fg:        env(ROFI_FG, #C5C8C6);
-    primary:   env(ROFI_PRIMARY, #F0C674);
-    alert:     env(ROFI_ALERT, #A54242);
-    on-primary: env(ROFI_ON_PRIMARY, #282A2E);
+    bg:        env(ROFI_BG, @bg@);
+    bg-alt:    env(ROFI_BG_ALT, @bgAlt@);
+    fg:        env(ROFI_FG, @fg@);
+    primary:   env(ROFI_PRIMARY, @primary@);
+    alert:     env(ROFI_ALERT, @alert@);
+    on-primary: env(ROFI_ON_PRIMARY, @onPrimary@);
     radius:    env(ROFI_RADIUS, 4px);
-    disabled:  env(ROFI_DISABLED, #707880);
+    disabled:  env(ROFI_DISABLED, @disabled@);
 
     background-color: transparent;
     text-color: @fg;

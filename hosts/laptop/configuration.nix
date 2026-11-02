@@ -12,8 +12,8 @@
     ./../shared/global # auto picks default.nix
     ./../shared/optional/i3.nix # sddm + i3 session
     # ./../shared/optional/blocky.nix
-    # lid/hibernate handling, tlp + thermald, autorandr, laptop diagnostics
-    # tooling; also pulls in optional/performance.nix
+    # lid/hibernate handling, tlp + thermald, autorandr, sysctl/tmpfs tuning,
+    # laptop diagnostics tooling
     ./../shared/optional/laptop.nix
     ./../shared/optional/steam.nix
   ];

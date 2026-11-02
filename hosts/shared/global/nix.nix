@@ -25,6 +25,13 @@
   nix.settings = {
     max-jobs = 2;
     cores = 8;
+
+    # nixvim and nvf both push their builds to the nix-community cache.
+    # Without it, every plugin or wrapper that cache.nixos.org doesn't have
+    # is rebuilt on each of these machines. NixOS appends cache.nixos.org
+    # (and its key) to both lists itself, so this only adds.
+    substituters = ["https://nix-community.cachix.org"];
+    trusted-public-keys = ["nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="];
   };
 
   # 2. Compressed swap in RAM as a buffer (the hosts have no swap partition,

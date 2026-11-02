@@ -13,10 +13,13 @@ with lib; let
     pulseSupport = true;
   };
 
-  yellow = "#F0C674";
-  red = "#A54242";
-  green = "#8C9440";
-  dim = "#707880";
+  # The shared palette (features/theme.nix), under the names the scripts
+  # below have always used.
+  palette = config.theme.palette;
+  yellow = palette.primary;
+  red = palette.alert;
+  green = palette.good;
+  dim = palette.disabled;
 
   # Colours for the %{F} tags the scripts print. The defaults are this bar's
   # palette; a bar launched with POLYBAR_* in its environment (the Docky bar,
@@ -564,7 +567,7 @@ with lib; let
     runtimeInputs = [pkgs.pamixer pkgs.xdotool pkgs.i3 pkgs.jq pkgs.coreutils config.home.profileDirectory];
     bashOptions = [];
     text = ''
-      theme=${../../dotfiles/rofi/volume-applet.rasi}
+      theme=${config.theme.rofiThemes}/volume-applet.rasi
       sel=2 # start on the mute button
 
       # Pin the window's top-right corner under the pointer: find the monitor
@@ -631,7 +634,7 @@ with lib; let
     runtimeInputs = [pkgs.util-linux pkgs.gawk pkgs.xdotool pkgs.i3 pkgs.jq pkgs.coreutils config.home.profileDirectory];
     bashOptions = [];
     text = ''
-      theme=${../../dotfiles/rofi/calendar.rasi}
+      theme=${config.theme.rofiThemes}/calendar.rasi
 
       # Centre the window under the pointer: find the monitor containing it and
       # the pointer's offset from that monitor's horizontal centre (the theme
@@ -652,7 +655,7 @@ with lib; let
       # colours follow the rofi theme's (ROFI_* is set by the Docky bar)
       text=$(cal | awk -v d="$(date +%-d)" \
           -v hl="''${ROFI_PRIMARY:-${yellow}}" -v dim="''${ROFI_DISABLED:-${dim}}" \
-          -v on="''${ROFI_ON_PRIMARY:-#282A2E}" '
+          -v on="''${ROFI_ON_PRIMARY:-${palette.onPrimary}}" '
           $0 ~ /^[[:space:]]*$/ { next }                       # cal pads to 8 lines
           { sub(/[ \t]+$/, "") }
           NR == 1 { print "<span foreground=\"" hl "\"><b>" $0 "</b></span>"; next }
@@ -774,7 +777,7 @@ with lib; let
   });
 
   modulesRight = concatStringsSep " " (
-    ["wallpaper"]
+    ["wallpaper" "car-wallpaper"]
     ++ optional cfg.marketplace "marketplace"
     ++ optional cfg.dnd "dnd"
     ++ ["volume"]
@@ -789,7 +792,7 @@ with lib; let
     ++ ["powermenu"]
   );
 in {
-  imports = [./polybar-docky.nix];
+  imports = [./polybar-docky.nix ./theme.nix];
 
   options.polybarModules = {
     backlight = mkEnableOption "screen backlight module in polybar";
@@ -831,11 +834,11 @@ in {
 
       settings = {
         colors = {
-          background = "#282A2E";
-          background-alt = "#373B41";
-          foreground = "#C5C8C6";
+          background = palette.bg;
+          background-alt = palette.bgAlt;
+          foreground = palette.fg;
           primary = yellow;
-          secondary = "#8ABEB7";
+          secondary = palette.secondary;
           alert = red;
           disabled = dim;
         };
@@ -941,6 +944,14 @@ in {
           exec = ''echo "%{F${yellow}}󰋩%{F-}"'';
           interval = 3600;
           click-left = "random-wallpaper";
+        };
+
+        "module/car-wallpaper" = {
+          type = "custom/script";
+          exec = ''echo "%{F${yellow}}󰄋%{F-}"'';
+          interval = 3600;
+          click-left = "car-wallpaper";
+          click-right = "car-wallpaper save";
         };
 
         "module/bluetooth" = {

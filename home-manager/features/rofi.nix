@@ -154,6 +154,8 @@ in {
     '';
   };
 
+  imports = [./theme.nix];
+
   config = {
     programs.rofi = {
       enable = true;
@@ -163,27 +165,26 @@ in {
         # takes the whole rofi instance down with it, even from other modes.
       ];
       terminal = "${pkgs.alacritty}/bin/alacritty";
-      theme = ../../dotfiles/rofi/theme.rasi;
+      # dotfiles/rofi/theme.rasi with the palette from features/theme.nix
+      theme = "${config.theme.rofiThemes}/theme.rasi";
       extraConfig = {
         # Only modes that run inside a single rofi instance belong here.
         # The standalone wrappers (rofi-bluetooth, rofi-screenshot, ...) spawn
         # their own rofi window, so they are exposed as drun entries below.
         modi = lib.concatStringsSep "," (
-          [
-            "drun"
+          ["drun"]
+          ++ lib.optional cfg.passwords "pw:rofi-passwords"
+          ++ lib.optional cfg.remote "remote:${rofi-remmina}/bin/rofi-remmina"
+          ++ [
+            "power:rofi-power-menu"
             "bookmarks:${rofi-bookmarks}/bin/rofi-bookmarks"
             "run"
             "window"
             "ssh"
           ]
-          ++ lib.optional cfg.remote "remote:${rofi-remmina}/bin/rofi-remmina"
-          ++ lib.optional cfg.passwords "pw:rofi-passwords"
           ++ lib.optional cfg.cheat "cheat:rofi-cheat"
           ++ lib.optional cfg.clipboard "clip:rofi-clipboard"
-          ++ [
-            "calc"
-            "power:rofi-power-menu"
-          ]
+          ++ ["calc"]
         );
         show-icons = true;
         icon-theme = "Papirus-Dark";

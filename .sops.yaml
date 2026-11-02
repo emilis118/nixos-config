@@ -57,7 +57,7 @@ creation_rules:
   # sops.secrets entry at it (see the comment in secrets.nix).
   - path_regex: secrets/hosts/desktop\.yaml$
     key_groups:
-      - age: [*admin, *desktop, *work_laptop, *work_pc, *laptop]
+      - age: [*admin, *desktop]
   - path_regex: secrets/hosts/laptop\.yaml$
     key_groups:
       - age: [*admin, *laptop]

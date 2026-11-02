@@ -1,15 +1,18 @@
-{
-  # Notification daemon. Colors and shapes mirror the rofi theme
-  # (dotfiles/rofi/theme.rasi), which in turn matches polybar.
+{config, ...}: let
+  palette = config.theme.palette;
+in {
+  imports = [./theme.nix];
+
+  # Notification daemon. Colours come from the shared palette, so the frames
+  # match rofi and polybar; the shapes mirror the rofi theme.
   services.dunst = {
     enable = true;
 
     settings = {
       global = {
         font = "JetBrainsMono Nerd Font 12";
-        # rofi bg / fg
-        background = "#282A2E";
-        foreground = "#C5C8C6";
+        background = palette.bg;
+        foreground = palette.fg;
         frame_width = 2;
         corner_radius = 4;
         separator_color = "frame";
@@ -35,17 +38,17 @@
       };
 
       urgency_low = {
-        frame_color = "#707880"; # rofi disabled
+        frame_color = palette.disabled;
         timeout = 5;
       };
 
       urgency_normal = {
-        frame_color = "#F0C674"; # rofi primary
+        frame_color = palette.primary;
         timeout = 10;
       };
 
       urgency_critical = {
-        frame_color = "#A54242"; # rofi alert
+        frame_color = palette.alert;
         timeout = 0; # sticky until dismissed
       };
     };

@@ -302,7 +302,7 @@ with lib; let
   };
 
   modulesRight = concatStringsSep " " (
-    ["color-switch" "wallpaper"]
+    ["color-switch" "wallpaper" "car-wallpaper"]
     ++ optional cfg.marketplace "marketplace"
     ++ optional cfg.dnd "dnd"
     ++ ["volume"]
@@ -459,6 +459,13 @@ with lib; let
       type = "custom/text";
       format = "󰋩";
       click-left = "random-wallpaper";
+    };
+
+    "module/car-wallpaper" = {
+      type = "custom/text";
+      format = "󰄋";
+      click-left = "car-wallpaper";
+      click-right = "car-wallpaper save";
     };
 
     "module/lhc" = {

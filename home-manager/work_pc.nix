@@ -1,24 +1,9 @@
 {
   imports = [
-    ./global # default.nix
-    ./features/qemu.nix
-    ./features/wallpaper.nix
-    ./features/i3.nix
-    ./features/remote.nix
-    ./features/onlyoffice.nix
-    ./features/mattermost.nix
-    ./features/flameshot.nix
-    ./features/whatsapp.nix
+    ./roles/work.nix
     ./features/marketplace-notifications
-    ./features/thunderbird.nix
-    ./features/cern-dfs.nix
-    ./features/bambu-studio.nix
     ./features/freecad.nix
-    ./features/crafts.nix
   ];
-
-  # workspace names / window assignments live in features/i3-profile.nix
-  i3Profile.work = true;
 
   xsession = {
     windowManager.i3 = {
@@ -49,7 +34,5 @@
     };
   };
 
-  # off while the beam is down (LS3); flip when the LHC is back
-  polybarModules.lhc = false;
   polybarModules.marketplace = true;
 }

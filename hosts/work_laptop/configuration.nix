@@ -11,8 +11,8 @@
     ./hardware-configuration.nix
     ./../shared/global # auto picks default.nix
     ./../shared/optional/i3.nix # sddm + i3 session
-    # lid/hibernate handling, tlp + thermald, autorandr, laptop diagnostics
-    # tooling; also pulls in optional/performance.nix
+    # lid/hibernate handling, tlp + thermald, autorandr, sysctl/tmpfs tuning,
+    # laptop diagnostics tooling
     ./../shared/optional/laptop.nix
     ./../shared/optional/cern-lab.nix # /mnt/lab sshfs + davfs2
     ./../shared/optional/eduvpn.nix # eduVPN client, for eduvpn.cern.ch

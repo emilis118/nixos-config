@@ -28,6 +28,55 @@ in {
         ${pkgs.feh}/bin/feh --bg-scale "''${files[RANDOM % count]}"
       '';
     })
+
+    # A random car wallpaper from wallhaven.cc (SFW, no API key needed).
+    # `car-wallpaper` fetches and sets one; `car-wallpaper save` copies the
+    # one currently shown into ~/Pictures/wallpapers/cars.
+    (pkgs.writeShellApplication {
+      name = "car-wallpaper";
+      runtimeInputs = with pkgs; [curl jq feh libnotify coreutils gnused];
+      text = ''
+        cache="''${XDG_CACHE_HOME:-$HOME/.cache}/car-wallpaper"
+        saved="$HOME/Pictures/wallpapers/cars"
+
+        save() {
+            # ~/.fehbg names the image on screen; only ours can be saved
+            img=$(sed -n "s/.*'\(.*\)'.*/\1/p" "$HOME/.fehbg" 2>/dev/null | tail -1)
+            case "$img" in
+                "$cache"/*) ;;
+                *) notify-send "Car wallpaper" "Current wallpaper is not a wallhaven one"; exit 1 ;;
+            esac
+            mkdir -p "$saved"
+            cp "$img" "$saved/"
+            notify-send "Car wallpaper" "Saved $(basename "$img")"
+        }
+
+        fetch() {
+            api='https://wallhaven.cc/api/v1/search?q=cars&categories=100&purity=100&atleast=2560x1440&ratios=16x9&sorting=random'
+            if ! url=$(curl -fsS --max-time 15 "$api" | jq -re '.data[0].path'); then
+                notify-send "Car wallpaper" "Could not reach wallhaven.cc"
+                exit 1
+            fi
+            mkdir -p "$cache"
+            tmp=$(mktemp "$cache/.download.XXXXXX")
+            if ! curl -fsS --max-time 60 -o "$tmp" "$url"; then
+                rm -f "$tmp"
+                notify-send "Car wallpaper" "Download failed"
+                exit 1
+            fi
+            # keep only the one on screen
+            find "$cache" -maxdepth 1 -name 'wallhaven-*' -delete
+            img="$cache/$(basename "$url")"
+            mv "$tmp" "$img"
+            feh --bg-fill "$img"
+        }
+
+        case "''${1:-}" in
+            save) save ;;
+            *) fetch ;;
+        esac
+      '';
+    })
   ];
 
   # betterlockscreen -l shows a pre-rendered image from ~/.cache/betterlockscreen,
