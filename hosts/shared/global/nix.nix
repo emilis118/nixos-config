@@ -26,7 +26,7 @@
     max-jobs = 2;
     cores = 8;
 
-    # nixvim and nvf both push their builds to the nix-community cache.
+    # nixvim pushes its builds to the nix-community cache.
     # Without it, every plugin or wrapper that cache.nixos.org doesn't have
     # is rebuilt on each of these machines. NixOS appends cache.nixos.org
     # (and its key) to both lists itself, so this only adds.

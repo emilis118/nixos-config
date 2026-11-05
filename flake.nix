@@ -13,12 +13,6 @@
     # upstream flake's overlay (exposes `herdr`, used in features/cli).
     herdr.url = "github:ogulcancelik/herdr";
     herdr.inputs.nixpkgs.follows = "nixpkgs";
-    # nixy's neovim (built with nvf); flake = false so we don't pull in
-    # nixy's heavy inputs (hyprland, stylix, ...) — we only use its nvf modules.
-    nvf.url = "github:notashelf/nvf";
-    nvf.inputs.nixpkgs.follows = "nixpkgs";
-    nixy.url = "github:anotherhadi/nixy";
-    nixy.flake = false;
     nixvim.url = "github:nix-community/nixvim/nixos-26.05";
     nixvim.inputs.nixpkgs.follows = "nixpkgs";
     # age-encrypted secrets checked into this repo; see SOPS-SETUP.md
@@ -45,25 +39,6 @@
       nixpkgs.overlays = [
         claude-code.overlays.default
         inputs.herdr.overlays.default
-        # nixy's neovim as a separate package, exposed as `nnvim` in neovim.nix
-        (final: _prev: {
-          nixy-nvim =
-            (inputs.nvf.lib.neovimConfiguration {
-              pkgs = final;
-              modules =
-                map (m: "${inputs.nixy}/home/nvf/${m}.nix") [
-                  "options"
-                  "languages"
-                  "picker"
-                  "snacks"
-                  "keymaps"
-                  "utils"
-                  "mini"
-                ]
-                ++ [./home-manager/features/cli/nnvim-overrides.nix];
-            })
-            .neovim;
-        })
       ];
     };
     # Every host is put together the same way: its own configuration.nix,

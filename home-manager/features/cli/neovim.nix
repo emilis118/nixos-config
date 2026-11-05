@@ -408,13 +408,6 @@ in {
       text = ''exec ${nvim}/bin/nvim -d "$@"'';
     })
 
-    # nixy's neovim (github:anotherhadi/nixy) under a separate name, as a
-    # second opinion — it doesn't touch the setup above
-    (runCommand "nnvim" {} ''
-      mkdir -p $out/bin
-      ln -s ${nixy-nvim}/bin/nvim $out/bin/nnvim
-    '')
-
     # nixvim wraps its own python3 for the plugins; this is the plain
     # interpreter on PATH, as the previous programs.neovim setup provided
     python3

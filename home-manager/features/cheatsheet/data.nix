@@ -1029,12 +1029,6 @@
     desc = "chmod +x the current file";
     example = "";
   }
-  {
-    cat = "nvim";
-    syntax = "nvim vs nnvim";
-    desc = "nvim = this config (nixvim); nnvim = nixy's build, kept for comparison";
-    example = "";
-  }
 
   # --- zsh ------------------------------------------------------------------
   {
