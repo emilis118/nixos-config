@@ -537,6 +537,69 @@ with lib; let
     '';
   });
 
+  # This repo vs origin: hidden while in sync, otherwise ↓behind (red, a
+  # pull is due) and/or ↑ahead (yellow, unpushed). It only compares local
+  # refs; the fetching is done by the nixos-config-fetch timer below, so
+  # the bar never waits on the network.
+  configRepo = config.home.sessionVariables.FLAKE or "${config.home.homeDirectory}/00_projects/nixos-config";
+
+  configSyncScript = lib.getExe (pkgs.writeShellApplication {
+    name = "polybar-config-sync";
+    runtimeInputs = [pkgs.coreutils pkgs.git pkgs.inotify-tools pkgs.systemd];
+    bashOptions = [];
+    text = ''
+      ${scriptPalette}
+      REPO="${configRepo}"
+
+      render() {
+          local counts ahead behind out=""
+          if ! counts=$(git -C "$REPO" rev-list --left-right --count 'HEAD...@{u}' 2>/dev/null); then
+              echo ""
+              return
+          fi
+          read -r ahead behind <<<"$counts"
+          if [ "$behind" -gt 0 ]; then
+              out="%{F$c_alert}󰊢 ↓$behind%{F-}"
+              [ "$ahead" -gt 0 ] && out="$out %{F$c_icon}↑$ahead%{F-}"
+          elif [ "$ahead" -gt 0 ]; then
+              out="%{F$c_icon}󰊢 ↑$ahead%{F-}"
+          fi
+          echo "$out"
+      }
+
+      GIT_DIR=$(git -C "$REPO" rev-parse --absolute-git-dir 2>/dev/null)
+
+      render
+      while :; do
+          before=$(date +%s)
+          if [ -n "$GIT_DIR" ]; then
+              # ref updates are written to a lock file and renamed into
+              # place, hence moved_to; .git itself catches FETCH_HEAD/HEAD
+              inotifywait -qq -t 60 -e close_write -e moved_to \
+                  "$GIT_DIR" "$GIT_DIR/refs/heads" "$GIT_DIR/refs/remotes" 2>/dev/null
+          else
+              sleep 60
+              GIT_DIR=$(git -C "$REPO" rev-parse --absolute-git-dir 2>/dev/null)
+          fi
+          # the timeout runs on the monotonic clock, which stops while
+          # suspended: a wall-clock jump well past it means we just woke up
+          if [ $(( $(date +%s) - before )) -gt 120 ]; then
+              systemctl --user start --no-block nixos-config-fetch.service
+          fi
+          render
+      done
+    '';
+  });
+
+  configSyncView = lib.getExe (pkgs.writeShellApplication {
+    name = "polybar-config-sync-view";
+    bashOptions = [];
+    text = ''
+      exec ${pkgs.alacritty}/bin/alacritty --hold --working-directory "${configRepo}" -e sh -c \
+        'git status -sb; echo; git log --oneline --graph --left-right "HEAD...@{u}"'
+    '';
+  });
+
   # There is no public text API for LHC Page 1, only the vistar screenshots
   # refreshed about once a minute, so the module is a launcher: click fetches
   # the current Page 1 image, right-click opens the live vistar page.
@@ -785,7 +848,7 @@ with lib; let
     ++ optional cfg.battery "battery"
     ++ ["filesystem" "memory" "cpu"]
     ++ optional cfg.gpu "gpu"
-    ++ ["bluetooth" "failed-units"]
+    ++ ["bluetooth" "failed-units" "config-sync"]
     ++ optional cfg.lhc "lhc"
     ++ ["wlan" "eth"]
     ++ optional cfg.vpn "vpn"
@@ -969,6 +1032,15 @@ in {
           click-left = "${failedUnitsView}";
         };
 
+        # left-click fetches now, right-click shows what differs
+        "module/config-sync" = {
+          type = "custom/script";
+          exec = "${configSyncScript}";
+          tail = true;
+          click-left = "systemctl --user start --no-block nixos-config-fetch.service";
+          click-right = "${configSyncView}";
+        };
+
         "module/lhc" = {
           type = "custom/script";
           exec = ''echo "%{F${yellow}}󰝨%{F-} LHC"'';
@@ -1094,5 +1166,44 @@ in {
     systemd.user.services.polybar.Service.Environment = mkForce [
       "PATH=${polybarPkg}/bin:${config.home.profileDirectory}/bin:/run/current-system/sw/bin:/run/wrappers/bin"
     ];
+
+    # Keeps origin/* fresh for the config-sync module. Fetch only, never
+    # merges. BatchMode: if the key isn't in the agent yet (it's added on
+    # first interactive use) this fails quietly instead of prompting, and
+    # the bar keeps showing the last known state.
+    systemd.user.services.nixos-config-fetch = {
+      Unit.Description = "git fetch ${configRepo}";
+      Service = {
+        Type = "oneshot";
+        ExecStart = lib.getExe (pkgs.writeShellApplication {
+          name = "nixos-config-fetch";
+          runtimeInputs = [pkgs.git pkgs.openssh pkgs.coreutils];
+          bashOptions = [];
+          text = ''
+            export SSH_AUTH_SOCK=''${SSH_AUTH_SOCK:-$XDG_RUNTIME_DIR/ssh-agent}
+            export GIT_SSH_COMMAND="ssh -o BatchMode=yes -o ConnectTimeout=10"
+            [ -d "${configRepo}" ] || exit 0
+            # right after resume the network may still be coming up
+            for _ in 1 2 3 4 5; do
+                git -C "${configRepo}" fetch --quiet --prune && exit 0
+                sleep 15
+            done
+            # offline is not a failure worth the failed-units alert
+            echo "fetch failed, keeping last known state"
+          '';
+        });
+      };
+    };
+
+    systemd.user.timers.nixos-config-fetch = {
+      Unit.Description = "Fetch nixos-config every 15 minutes";
+      Timer = {
+        OnStartupSec = "1min";
+        OnCalendar = "*:0/15";
+        Persistent = true;
+        RandomizedDelaySec = "30s";
+      };
+      Install.WantedBy = ["timers.target"];
+    };
   };
 }
