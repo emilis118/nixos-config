@@ -44,6 +44,7 @@
     "spotify.desktop" = pkgs.spotify;
     "steam.desktop" = osConfig.programs.steam.package;
     "com.github.dagmoller.whatsapp-electron.desktop" = pkgs.whatsapp-electron;
+    "discord.desktop" = pkgs.discord;
     "org.prismlauncher.PrismLauncher.desktop" = prismlauncher;
     "onlyoffice-desktopeditors.desktop" = pkgs.onlyoffice-desktopeditors;
     "onlyoffice-word.desktop" = builtins.elemAt officeEditors 0;
@@ -58,6 +59,7 @@
     "onlyoffice-desktopeditors.desktop"
     "spotify.desktop"
     "com.github.dagmoller.whatsapp-electron.desktop"
+    "discord.desktop"
     "steam.desktop"
   ];
 in {
@@ -72,12 +74,15 @@ in {
     ./features/minecraft.nix # prismlauncher
     ./features/onlyoffice.nix
     ./features/whatsapp.nix
+    ./features/cs2.nix # MangoHud overlay; the Steam launch options in it are a manual step
   ];
 
   home.packages =
     [
       pkgs.google-chrome
       pkgs.spotify
+      # not features/discord.nix: that one adds an i3-only start-discord helper
+      pkgs.discord
       pkgs.fluent-icon-theme # Windows 11-style icons, see workspace below
     ]
     # in the app menu too, not just on the desktop
