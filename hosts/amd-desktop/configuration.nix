@@ -1,6 +1,7 @@
-# Second gaming desktop: Ryzen 9 3900X + GTX 1070. Same software as `desktop`;
-# the differences are the CPU vendor (microcode/kvm module live in
-# hardware-configuration.nix) and the broken core below.
+# Gaming desktop: Ryzen 9 3900X + GTX 1070. Started as a copy of `desktop`
+# (before that became Ieva's); what is specific to this machine is the CPU
+# vendor (microcode/kvm module live in hardware-configuration.nix) and the
+# broken core below.
 {
   config,
   pkgs,

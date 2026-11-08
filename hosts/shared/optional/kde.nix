@@ -21,7 +21,7 @@
   # optional/thunar.nix points every archive mime type at xarchiver, because
   # thunar-archive-plugin picks its backend from the default application. That
   # is a system-wide setting, so on a host importing both session modules
-  # (hosts/desktop) it would drag Plasma's archives away from ark too. The mime
+  # it would drag Plasma's archives away from ark too. The mime
   # spec checks /etc/xdg/<desktop>-mimeapps.list before mimeapps.list, and
   # Plasma sets XDG_CURRENT_DESKTOP=KDE, so this wins inside a Plasma session
   # only — i3 keeps xarchiver, Plasma keeps ark. Harmless on a KDE-only host.

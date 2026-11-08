@@ -18,6 +18,12 @@
     # age-encrypted secrets checked into this repo; see SOPS-SETUP.md
     sops-nix.url = "github:Mic92/sops-nix";
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
+    # Plasma settings (panels, theme, keyboard layouts) as home-manager
+    # options; used only in Ieva's profile on `desktop`. No release branches,
+    # trunk only, so it follows our nixpkgs and home-manager.
+    plasma-manager.url = "github:nix-community/plasma-manager";
+    plasma-manager.inputs.nixpkgs.follows = "nixpkgs";
+    plasma-manager.inputs.home-manager.follows = "home-manager";
     # last nixpkgs commit with prismlauncher 9.4 (the next one bumps it to
     # 10.0.0); used only for that package in features/minecraft.nix.
     nixpkgs-prism.url = "github:nixos/nixpkgs/c2fd2485d685ad6f4ed77b89991af722f282c5c7";
@@ -80,8 +86,8 @@
       };
 
     hosts = {
-      # ieva has her own account on this one (Plasma, autologin); see
-      # hosts/shared/users/ieva.
+      # Ieva's machine (Plasma, autologin); mine is only the admin account.
+      # See hosts/desktop and hosts/shared/users/ieva.
       desktop = {extraHomeUsers = ["ieva"];};
       amd-desktop = {};
       laptop = {};

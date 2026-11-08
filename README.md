@@ -1,12 +1,13 @@
 # nixos-config
 
-NixOS + home-manager flake for six machines, all x86_64. Five of them are
-mine and run X11 + i3; `daq-laptop` is the lab's and runs Plasma on Wayland.
+NixOS + home-manager flake for six machines, all x86_64. Four of them are
+mine and run X11 + i3; `desktop` is Ieva's and `daq-laptop` is the lab's, and
+both run Plasma on Wayland.
 
 | host          | hostname     | what it is                                    |
 | ------------- | ------------ | --------------------------------------------- |
-| `desktop`     | `desktop`    | NVIDIA gaming desktop (Steam, CS2, blocky DNS) |
-| `amd-desktop` | `amd-desktop`| same as `desktop`, on a Ryzen 9 3900X + GTX 1070; its failing core 10 (CPUs 10+22) is taken offline at boot |
+| `desktop`     | `desktop`    | Ieva's NVIDIA gaming desktop, KDE, autologin (Chrome, Steam, Spotify, OnlyOffice) |
+| `amd-desktop` | `amd-desktop`| NVIDIA gaming desktop (Steam, CS2, blocky DNS), on a Ryzen 9 3900X + GTX 1070; its failing core 10 (CPUs 10+22) is taken offline at boot |
 | `laptop`      | `laptop`     | personal laptop                               |
 | `work_pc`     | `pcte276928` | CERN desktop, two monitors, `/mnt/lab` sshfs  |
 | `work_laptop` | `lapte277203`| CERN laptop, fingerprint reader, `/mnt/lab`   |
@@ -40,7 +41,8 @@ hosts/
   shared/global/              imported by every host (boot, nix, locale, fonts, zsh)
   shared/optional/            opt-in per host (i3, kde, nvidia, steam, razer,
                               blocky, laptop, cern-lab, remote-access)
-  shared/users/<user>/        the accounts (emilis everywhere, cryolab on daq-laptop)
+  shared/users/<user>/        the accounts (emilis everywhere, ieva on desktop,
+                              cryolab on daq-laptop)
 home-manager/
   <host>.nix                  per-host home profile: a role + what sets the host apart
   <host>-<user>.nix           second profile on a host that isn't only mine
