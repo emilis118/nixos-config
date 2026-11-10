@@ -137,10 +137,6 @@ in {
             notification = false;
           }
           {
-            command = "picom";
-            always = true;
-          }
-          {
             command = "random-wallpaper";
             always = true;
           }

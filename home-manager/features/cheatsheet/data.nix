@@ -485,12 +485,12 @@
     cat = "nix";
     syntax = "nix flake check";
     desc = "evaluate every host + check formatting, no rebuild";
-    example = "nix flake check --no-build";
+    example = "nix flake check";
   }
   {
     cat = "nix";
     syntax = "nix fmt";
-    desc = "alejandra over the whole tree";
+    desc = "alejandra over the whole tree; nix fmt -- --check . only reports";
     example = "nix fmt";
   }
   {
@@ -566,6 +566,54 @@
     syntax = "mdb <file.md>";
     desc = "render markdown to self-contained HTML and open it in the browser";
     example = "mdb README.md";
+  }
+  {
+    cat = "mine";
+    syntax = "z <part of a dir name>";
+    desc = "zoxide: jump to the most-used matching directory from anywhere; zi picks with fzf";
+    example = "z nixos";
+  }
+  {
+    cat = "mine";
+    syntax = ", <command>";
+    desc = "comma: run a program that isn't installed, straight from nixpkgs";
+    example = ", cowsay hi";
+  }
+  {
+    cat = "mine";
+    syntax = "echo 'use nix' > .envrc && direnv allow";
+    desc = "direnv: load this project's shell.nix on cd from now on (use flake for a flake.nix)";
+    example = "echo 'use nix' > .envrc && direnv allow";
+  }
+  {
+    cat = "mine";
+    syntax = "ts";
+    desc = "tmux-sessionizer by name, same as Ctrl+Shift+F";
+    example = "ts";
+  }
+  {
+    cat = "mine";
+    syntax = "gs / ga / gc / gp / gl";
+    desc = "git status / add / commit / push / pull";
+    example = "ga . && gc -m update && gp";
+  }
+  {
+    cat = "mine";
+    syntax = "y";
+    desc = "yazi file manager; quitting leaves the shell in the directory you ended up in";
+    example = "y";
+  }
+  {
+    cat = "mine";
+    syntax = "lab-sync [-n] [folder]";
+    desc = "work machines: rsync this directory to /mnt/lab/<same name>; -n previews";
+    example = "lab-sync -n";
+  }
+  {
+    cat = "mine";
+    syntax = "ssh slides / scp -r dir slides:presentations/";
+    desc = "the slidev host (root@slider2.cern.ch), key picked by ~/.ssh/config";
+    example = "ssh slides";
   }
   {
     cat = "mine";

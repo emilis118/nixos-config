@@ -27,6 +27,11 @@
     # last nixpkgs commit with prismlauncher 9.4 (the next one bumps it to
     # 10.0.0); used only for that package in features/minecraft.nix.
     nixpkgs-prism.url = "github:nixos/nixpkgs/c2fd2485d685ad6f4ed77b89991af722f282c5c7";
+    # prebuilt nix-index database (updated weekly upstream), which is what
+    # lets `, cmd` (comma) run a program that isn't installed without first
+    # spending ten minutes indexing nixpkgs; used in features/cli/shell-tools.nix
+    nix-index-database.url = "github:nix-community/nix-index-database";
+    nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = {
@@ -101,23 +106,26 @@
     nixosConfigurations = nixpkgs.lib.mapAttrs mkHost hosts;
 
     # `nix fmt` formats the whole tree with the same formatter the neovim
-    # setup uses for nix buffers.
-    formatter.${system} = pkgsFor.alejandra;
+    # setup uses for nix buffers. Wrapped because current Nix hands the
+    # formatter no path when `nix fmt` is run bare, and alejandra with no
+    # path sits reading stdin; this falls back to the current directory.
+    # Arguments still pass through: `nix fmt -- --check .`
+    formatter.${system} = pkgsFor.writeShellScriptBin "alejandra-tree" ''
+      exec ${pkgsFor.alejandra}/bin/alejandra "''${@:-.}"
+    '';
 
-    # `nix flake check` evaluates every host and verifies formatting, which
-    # catches option renames and typos without a rebuild.
-    checks.${system} =
-      nixpkgs.lib.mapAttrs
-      (name: _: self.nixosConfigurations.${name}.config.system.build.toplevel)
-      hosts
-      // {
-        formatting =
-          pkgsFor.runCommand "check-formatting" {
-            nativeBuildInputs = [pkgsFor.alejandra];
-          } ''
-            alejandra --check ${./.}
-            touch $out
-          '';
-      };
+    # `nix flake check` evaluates every host on its own (it checks that each
+    # nixosConfigurations.<name> toplevel is a derivation), which catches
+    # option renames and typos without a rebuild. The hosts are deliberately
+    # not listed under `checks` as well: checks get *built*, so that turned a
+    # plain `nix flake check` into building all six system closures. The one
+    # check here is cheap, so no --no-build is needed.
+    checks.${system}.formatting =
+      pkgsFor.runCommand "check-formatting" {
+        nativeBuildInputs = [pkgsFor.alejandra];
+      } ''
+        alejandra --check ${./.}
+        touch $out
+      '';
   };
 }

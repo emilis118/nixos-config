@@ -26,8 +26,8 @@ sudo nixos-rebuild switch --flake .#<host>
 Check a change without applying it:
 
 ```sh
-nix flake check          # evaluates every host + checks formatting
-nix fmt                  # alejandra over the tree
+nix flake check          # evaluates every host + checks formatting (builds nothing big)
+nix fmt                  # alejandra over the tree (nix fmt -- --check . only reports)
 sudo nixos-rebuild build --flake .#<host>
 ```
 
@@ -53,7 +53,7 @@ home-manager/
                               the battery/backlight/brightness-key toggles)
   features/cli/               shell-side features (zsh, neovim, tmux, git, ...)
 dotfiles/
-  .zshrc .zprofile .tmux.conf read into the nix config with builtins.readFile
+  .zshrc .tmux.conf           read into the nix config with builtins.readFile
   rofi/ wallpaper/            assets referenced from the nix store
 ```
 
@@ -152,9 +152,7 @@ Clears itself at login.
 
 `nvim` is built with [nixvim](https://github.com/nix-community/nixvim) in
 `home-manager/features/cli/neovim.nix` — plugins, LSP and keymaps are all in
-that file, there is no lua to keep in sync outside the flake. `nnvim` is
-[nixy](https://github.com/anotherhadi/nixy)'s nvf-based config, kept around as
-a second opinion.
+that file, there is no lua to keep in sync outside the flake.
 
 ## daq-laptop
 

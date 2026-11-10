@@ -78,8 +78,6 @@ in {
         assign [class="steam"] $ws7
 
         bindsym Mod1+Shift+f exec firefox
-        # start-discord comes from features/discord.nix
-        bindsym Mod1+Shift+d exec "start-discord"
 
         bindsym XF86AudioRaiseVolume exec --no-startup-id pamixer -i 5
         bindsym XF86AudioLowerVolume exec --no-startup-id pamixer -d 5

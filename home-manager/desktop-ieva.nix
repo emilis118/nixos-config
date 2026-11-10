@@ -81,7 +81,6 @@ in {
     [
       pkgs.google-chrome
       pkgs.spotify
-      # not features/discord.nix: that one adds an i3-only start-discord helper
       pkgs.discord
       pkgs.fluent-icon-theme # Windows 11-style icons, see workspace below
     ]

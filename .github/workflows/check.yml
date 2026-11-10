@@ -17,13 +17,9 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
 
-      # Evaluates every host's toplevel and runs alejandra --check.
-      # Evaluation alone catches renamed/removed options, which otherwise
-      # only surface at rebuild time on the machine itself.
+      # Evaluates every host's toplevel and builds the one check in
+      # flake.nix, which runs alejandra --check. Evaluation alone catches
+      # renamed/removed options, which otherwise only surface at rebuild
+      # time on the machine itself.
       - name: nix flake check
-        run: nix flake check --no-build --show-trace
-
-      # --no-build above only *instantiates* the formatting derivation; it
-      # never runs alejandra. Build that one check so formatting is enforced.
-      - name: formatting
-        run: nix build .#checks.x86_64-linux.formatting -L
+        run: nix flake check --show-trace -L

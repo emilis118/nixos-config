@@ -49,6 +49,17 @@ with lib; let
     User = "cryolab";
   };
 
+  # The slidev host. Its key was handed out as a .pem and is not in sops, so
+  # the block is not gated on `installed` like the ones above: on a machine
+  # without the file ssh only warns and falls back to asking, and nothing
+  # but an explicit `ssh slides` / `scp ... slides:` ever uses this block.
+  unmanaged."slides" = {
+    HostName = "slider2.cern.ch";
+    User = "root";
+    IdentityFile = "${home}/.ssh/slides_key.pem";
+    IdentitiesOnly = true;
+  };
+
   withIdentity = key:
     mapAttrs (_: block:
       block
@@ -59,6 +70,7 @@ with lib; let
 
   blocks =
     keyless
+    // unmanaged
     // foldl' mergeAttrs {}
     (map (key: withIdentity key keyed.${key})
       (filter (key: keyed ? ${key}) installed));

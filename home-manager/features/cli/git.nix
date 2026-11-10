@@ -9,6 +9,11 @@
         email = "uleu2em@gmail.com";
       };
 
+      # First `git push` of a new branch sets its upstream by itself, so
+      # there is no `--set-upstream origin <branch>` to type (or to be
+      # reminded of by the error).
+      push.autoSetupRemote = true;
+
       # zdiff3 puts the common ancestor in the conflict block, so you can see
       # what each side actually changed instead of guessing from two variants.
       merge.conflictstyle = "zdiff3";

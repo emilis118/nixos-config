@@ -1,11 +1,11 @@
 {pkgs, ...}: {
   imports = [
     ./zsh.nix
+    ./shell-tools.nix
     ./neovim.nix
     ./git.nix
     ./ssh.nix
     ./alacritty.nix
-    ./lf.nix
     ./yazi.nix
     ./tmux.nix
     ./zip.nix

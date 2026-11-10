@@ -6,6 +6,8 @@
   programs.zsh = {
     enable = true;
     enableCompletion = true;
+    # a bare directory name is a cd: `..`, `../..`, `00_projects/foo`
+    autocd = true;
     # gray ghost-text suggestion from history, accept with right arrow
     autosuggestion.enable = true;
     # valid commands turn green as you type, typos red
