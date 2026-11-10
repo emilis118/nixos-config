@@ -15,4 +15,19 @@ alias shutdown="shutdown -h now"
 alias lab="ssh lab"
 
 export PATH="$PATH:$HOME/.local/scripts/"
-bindkey -s '^f' "tmux-sessionizer\n"
+# Ctrl+F: pick a project and just cd into it. Has to be a widget rather
+# than a script, since a child process can't change this shell's directory.
+project-cd-widget() {
+  local dir
+  dir=$(project-pick)
+  [[ -n $dir ]] && cd "$dir"
+  zle reset-prompt
+}
+zle -N project-cd-widget
+bindkey '^f' project-cd-widget
+
+# Ctrl+Shift+F: tmux-sessionizer. Terminals send ^F for both Ctrl+F and
+# Ctrl+Shift+F, so alacritty is told to send ESC F (Alt+Shift+F) for the
+# shifted chord instead (features/cli/alacritty.nix). That also passes
+# through tmux untouched.
+bindkey -s '^[F' "tmux-sessionizer\n"

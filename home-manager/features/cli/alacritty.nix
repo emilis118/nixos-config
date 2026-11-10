@@ -24,6 +24,13 @@
           mods = "Shift";
           action = "Paste";
         }
+        # Ctrl+Shift+F is otherwise indistinguishable from Ctrl+F (both ^F).
+        # Send ESC F instead; zsh binds that to tmux-sessionizer (.zshrc).
+        {
+          key = "F";
+          mods = "Control|Shift";
+          chars = builtins.fromJSON ''"\u001bF"'';
+        }
       ];
       font = {
         size = 13.0;

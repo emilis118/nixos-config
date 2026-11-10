@@ -350,6 +350,12 @@
   {
     cat = "hist";
     syntax = "Ctrl+F";
+    desc = "pick a project with fzf and cd into it (no tmux)";
+    example = "";
+  }
+  {
+    cat = "hist";
+    syntax = "Ctrl+Shift+F";
     desc = "tmux-sessionizer: pick a project, jump to its tmux session";
     example = "";
   }

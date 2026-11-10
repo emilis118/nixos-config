@@ -17,6 +17,23 @@
   };
 
   home.packages = [
+    # The project list + fzf picker, shared by tmux-sessionizer (Ctrl+Shift+F)
+    # and the plain cd widget in .zshrc (Ctrl+F). Prints the chosen dir.
+    # Searches every numbered top-level folder in ~ (00_projects,
+    # 01_learning, 02_whatever, ...), so a new one is picked up on its own.
+    (
+      pkgs.writeShellApplication {
+        name = "project-pick";
+        bashOptions = [];
+        text = ''
+          shopt -s nullglob
+          roots=(~/[0-9][0-9]_*/)
+          [[ ''${#roots[@]} -eq 0 ]] && exit 0
+          find "''${roots[@]}" -mindepth 1 -maxdepth 1 -type d | fzf
+        '';
+      }
+    )
+
     (
       pkgs.writeShellApplication {
         name = "tmux-sessionizer";
@@ -25,7 +42,7 @@
           if [[ $# -eq 1 ]]; then
               selected=$1
           else
-              selected=$(find ~/00_projects ~/01_learning -mindepth 1 -maxdepth 1 -type d | fzf)
+              selected=$(project-pick)
           fi
 
           if [[ -z "$selected" ]]; then
