@@ -4,6 +4,7 @@
   #   Enter      open in thunar: a folder opens itself, a file opens its
   #              folder with the file selected
   #   Alt+Enter  open with the default app (xdg-open), e.g. a pdf in the viewer
+  #   Alt+t      open alacritty cd'd into it (a file: its folder)
   #   Alt+c      copy the full path to the clipboard
   #
   # The list comes from fd, so .gitignore'd stuff (node_modules, build dirs,
@@ -13,7 +14,7 @@
   # if fd is still walking.
   rofiFiles = pkgs.writeShellApplication {
     name = "rofi-files";
-    runtimeInputs = with pkgs; [fd rofi xdg-utils xclip libnotify coreutils gnused];
+    runtimeInputs = with pkgs; [fd rofi alacritty xdg-utils xclip libnotify coreutils gnused];
     bashOptions = [];
     text = ''
       list() {
@@ -31,7 +32,8 @@
         -no-custom -async-pre-read 50 \
         -kb-custom-1 "Alt+Return,Alt+KP_Enter" \
         -kb-custom-2 "Alt+c" \
-        -mesg "enter: thunar   alt+enter: open   alt+c: copy path")
+        -kb-custom-3 "Alt+t" \
+        -mesg "enter: thunar   alt+enter: open   alt+t: terminal   alt+c: copy path")
       code=$?
       [ -n "$choice" ] || exit 0
 
@@ -49,6 +51,11 @@
         11)
           printf '%s' "$path" | xclip -selection clipboard
           notify-send -a files "path copied" "$path" 2>/dev/null
+          ;;
+        12)
+          dir=$path
+          [ -d "$dir" ] || dir=$(dirname "$path")
+          setsid -f alacritty --working-directory "$dir" >/dev/null 2>&1 </dev/null
           ;;
       esac
     '';
