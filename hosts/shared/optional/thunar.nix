@@ -28,14 +28,31 @@ in {
     unzip
     zip
     p7zip
+    ristretto # image viewer: fits to window, prev/next + zoom buttons
   ];
+
+  # Ristretto decodes through gdk-pixbuf, which has no WebP support built in.
+  programs.gdk-pixbuf.modulePackages = [pkgs.webp-pixbuf-loader];
 
   # The plugin picks its backend by looking up the default application for the
   # archive's mime type and loading "<desktop-id>.tap" — so anything not
   # pointed at xarchiver.desktop silently yields no extract menu.
+  #
+  # Images go to Ristretto instead of feh (still installed for the wallpaper
+  # scripts), which opens at 1:1 pixel size and has no buttons.
   xdg.mime.defaultApplications = let
     xarchiver = ["xarchiver.desktop"];
+    ristretto = ["org.xfce.ristretto.desktop"];
   in {
+    "image/png" = ristretto;
+    "image/jpeg" = ristretto;
+    "image/gif" = ristretto;
+    "image/webp" = ristretto;
+    "image/bmp" = ristretto;
+    "image/tiff" = ristretto;
+    "image/svg+xml" = ristretto;
+    "image/x-pixmap" = ristretto;
+    "image/x-xpixmap" = ristretto;
     "application/zip" = xarchiver;
     "application/x-7z-compressed" = xarchiver;
     "application/vnd.rar" = xarchiver;

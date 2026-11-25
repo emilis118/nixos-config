@@ -103,7 +103,7 @@ with lib; let
     '';
   };
 in {
-  imports = [./polybar.nix ./i3-profile.nix ./claude-popup.nix ./file-search.nix];
+  imports = [./polybar.nix ./i3-profile.nix ./claude-popup.nix ./file-search.nix ./lxask.nix];
 
   xsession = {
     enable = true;

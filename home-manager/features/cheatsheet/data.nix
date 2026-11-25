@@ -533,6 +533,18 @@
   }
   {
     cat = "mine";
+    syntax = "lxask \"what you want\"";
+    desc = "offline command assistant; also Ctrl+G at the prompt, ctrl+enter in this tab";
+    example = "lxask \"show disk usage of each folder here, biggest first\"";
+  }
+  {
+    cat = "mine";
+    syntax = "lxask --explain \"cmd\"";
+    desc = "take a command apart from the man pages, flag unknown options";
+    example = "lxask --explain \"tar -xzvf a.tgz -C /tmp\"";
+  }
+  {
+    cat = "mine";
     syntax = "vpn up|down|toggle|status";
     desc = "NordLynx tunnel; the polybar shield does the same";
     example = "vpn status";
@@ -823,6 +835,18 @@
     cat = "i3";
     syntax = "mod+r";
     desc = "resize mode — arrows resize, Escape leaves";
+    example = "";
+  }
+  {
+    cat = "i3";
+    syntax = "Ctrl+Alt+Esc";
+    desc = "force-quit a hung rofi (works even while it holds the keyboard)";
+    example = "";
+  }
+  {
+    cat = "i3";
+    syntax = "mod+Shift+a";
+    desc = "lxask popup: ask for a command in plain words; Enter copies it, Esc closes";
     example = "";
   }
   {

@@ -102,14 +102,29 @@ with lib; let
 
       add_label="+        add an entry of your own"
 
+      # lxask-popup comes from features/lxask.nix (i3 profiles only)
+      have_lxask() { command -v lxask-popup >/dev/null 2>&1; }
+
       if [ -z "''${1:-}" ]; then
         printf '\0prompt\x1fcheat\n'
+        if have_lxask; then
+          printf '\0message\x1fnot here? type it as a question, ctrl+enter asks lxask\n'
+        fi
         i=0
         while IFS="$(printf '\t')" read -r c s d _; do
           printf '%-8s %-26s %s\0info\x1f%s\n' "[$c]" "$s" "$d" "$i"
           i=$((i + 1))
         done < <(all)
         printf '%s\0info\x1fadd\n' "$add_label"
+        exit 0
+      fi
+
+      # ROFI_RETV=2: typed text rather than a row (Ctrl+Enter, or Enter with
+      # nothing matching). Handed off like cheat-add, rofi closes behind it.
+      if [ "''${ROFI_RETV:-}" = 2 ]; then
+        if have_lxask; then
+          setsid -f lxask-popup "$1" >/dev/null 2>&1 </dev/null
+        fi
         exit 0
       fi
 
@@ -128,7 +143,11 @@ with lib; let
 
       # the example is the useful thing to paste; fall back to the syntax
       copy=''${example:-$syntax}
-      printf '%s' "$copy" | xclip -selection clipboard
+      # xclip stays resident to own the selection, so detach its output:
+      # rofi reads this script's stdout until EOF, and an xclip still holding
+      # that pipe freezes rofi (keyboard grab included) until something else
+      # takes the clipboard. Same trap as the pw tab, see passwords.nix.
+      printf '%s' "$copy" | xclip -selection clipboard >/dev/null 2>&1
       notify-send -a cheat "$syntax" "$desc
 
       copied: $copy"
