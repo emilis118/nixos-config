@@ -30,7 +30,7 @@
     {
       name = "filips_workstation";
       server = "pccag4556.cern.ch";
-      username = "fsoukup";
+      username = "eulejeva";
     }
     {
       name = "lab_win_personal";
