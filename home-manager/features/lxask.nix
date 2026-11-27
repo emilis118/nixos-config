@@ -19,10 +19,11 @@
   # SHA256SUMS lists them all, in the hex form fetchurl takes) to upgrade.
   version = "1.5.8";
   release = "https://github.com/arxhr007/lxask/releases/download/v${version}";
-  fetch = name: sha256: pkgs.fetchurl {
-    url = "${release}/${name}";
-    inherit sha256;
-  };
+  fetch = name: sha256:
+    pkgs.fetchurl {
+      url = "${release}/${name}";
+      inherit sha256;
+    };
 
   # Two x86 builds: -v3 (AVX2+FMA, since ~2015) is the faster one, the plain
   # one covers older CPUs. Both are kept and the wrapper picks at run time,
