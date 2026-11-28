@@ -16,6 +16,8 @@
     # laptop diagnostics tooling
     ./../shared/optional/laptop.nix
     ./../shared/optional/steam.nix
+    # udev access for the CD drive and Lexia, passed through to the Windows VM
+    ./../shared/optional/vm-usb-passthrough.nix
   ];
 
   # Networking
